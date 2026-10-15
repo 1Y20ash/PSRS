@@ -1,20 +1,53 @@
 # PSRS — Predictive Supply Resilience System
 
 **Problem Statement:** PS 26251 — Indian Army: Predictive Logistics & Forward Supply Chain  
-**Status:** Phase 1 foundation; domain features and validation are pending.
+**Status:** Phase 2 — reproducible synthetic dataset generator; forecasting and planning features remain pending.
 
-PSRS is a proposed decision-support prototype for studying demand forecasting, inventory reconciliation, fictional GIS routing, synthetic disruption scenarios, and constraint-aware replenishment planning.
+PSRS is a research prototype for studying demand forecasting, inventory reconciliation, fictional GIS routing, synthetic disruption scenarios, and constraint-aware replenishment planning.
 
 Development uses synthetic data and fictional locations only. Do not add real military logistics, routes, inventories, schedules, or other operational information. This prototype is not defence-grade certified and is not intended for real operational deployment.
 
-## Phase 1 includes
+## Phase 1 — repository foundation
 
 - Flask application factory and local entry point.
 - Environment-based configuration and logging.
 - Placeholder dashboard and health endpoint.
-- Initial pytest smoke tests.
-- GitHub Actions test workflow.
+- Pytest smoke tests and GitHub Actions CI.
 - Architecture, data dictionary, experimental design, and evaluation-reporting notes.
+
+## Phase 2 — synthetic data
+
+The data generator creates reproducible CSV files from a seed. It currently defines 8 fictional item types and 6 fictional grid locations, with historical demand, inventory events, and a future evaluation window.
+
+### Generate the dataset
+
+Run from the repository root after installing requirements:
+
+```bash
+python scripts/generate_synthetic_data.py
+```
+
+By default, files are written to the ignored local folder `data/generated/`. You can choose a seed and time-window sizes:
+
+```bash
+python scripts/generate_synthetic_data.py --seed 26251 --historical-days 90 --forecast-days 14
+python scripts/generate_synthetic_data.py --output data/generated-demo --seed 7
+```
+
+Generated files:
+
+| File | Purpose |
+|---|---|
+| `items.csv` | Fictional item categories, units, and criticality |
+| `locations.csv` | Fictional location names and grid coordinates |
+| `inventory_events.csv` | Opening-balance, issue, and receipt events |
+| `demand_history.csv` | Historical demand available to algorithms |
+| `evaluation_ground_truth.csv` | Future actual demand reserved for evaluation only |
+| `dataset_manifest.json` | Seed, date split, row counts, schema version, and isolation warning |
+
+**No leakage:** `evaluation_ground_truth.csv` is intentionally separate from algorithm-visible files. Do not load it during training, forecasting, or planning. Use it only after a candidate has produced predictions or plans for the evaluation dates.
+
+The same seed and arguments produce byte-identical files. Generated datasets are not committed by default; rerun the generator when needed.
 
 ## Requirements
 
@@ -41,7 +74,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-## Run locally
+## Run the web app
 
 ```bash
 python app.py
@@ -53,8 +86,10 @@ python app.py
 ## Tests
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
+
+CI installs dependencies from `requirements.txt` and runs the full test suite on pull requests and pushes.
 
 ## Project structure
 
@@ -67,10 +102,12 @@ PSRS/
 ├── .env.example
 ├── .gitignore
 ├── psrs/
-│   ├── __init__.py
 │   ├── services/
+│   │   └── synthetic_data.py
 │   ├── templates/
 │   └── static/
+├── scripts/
+│   └── generate_synthetic_data.py
 ├── data/synthetic/
 ├── models/
 ├── tests/
@@ -93,8 +130,9 @@ The application package is named `psrs` so the root-level `app.py` entry point d
 
 ## Phase status
 
-- [x] Repository initialized
-- [x] Phase 1 scaffold authored on `phase/1-repository-environment`
-- [ ] Local tests verified
-- [ ] GitHub Actions run verified
-- [ ] Phase 1 review and pull request
+- [x] Phase 1 repository and CI foundation merged
+- [x] Phase 2 reproducible synthetic data generator implemented on its feature branch
+- [ ] Phase 2 CI verification and review
+- [ ] Inventory reconciliation
+- [ ] Demand forecasting
+- [ ] Scenario simulation and planning
