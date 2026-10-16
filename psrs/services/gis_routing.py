@@ -23,6 +23,7 @@ def load_graph(geojson_path: str | Path) -> nx.Graph:
     if payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
         raise ValueError("Road network must be a GeoJSON FeatureCollection")
     graph = nx.Graph()
+    declared_nodes, edge_records = set(), []
     for feature in payload["features"]:
         if not isinstance(feature, dict):
             raise ValueError("Every GeoJSON feature must be an object")
@@ -36,8 +37,9 @@ def load_graph(geojson_path: str | Path) -> nx.Graph:
                     raise ValueError
                 if not (-180 <= x <= 180 and -90 <= y <= 90):
                     raise ValueError
-                if node_id in graph:
+                if node_id in declared_nodes:
                     raise ValueError("Duplicate road node")
+                declared_nodes.add(node_id)
                 graph.add_node(node_id, x=x, y=y)
             elif properties.get("type") == "edge":
                 start, end = str(properties["from"]), str(properties["to"])
@@ -47,14 +49,17 @@ def load_graph(geojson_path: str | Path) -> nx.Graph:
                     raise ValueError
                 if not math.isfinite(distance) or not math.isfinite(travel_time):
                     raise ValueError
-                graph.add_edge(start, end, distance=distance, travel_time=travel_time)
+                edge_records.append((start, end, distance, travel_time))
         except (KeyError, TypeError, IndexError, ValueError) as exc:
             raise ValueError("Invalid road-network node or edge properties") from exc
-    if not graph.nodes:
+    if not declared_nodes:
         raise ValueError("Road network contains no nodes")
-    unknown = [(a, b) for a, b in graph.edges if a not in graph.nodes or b not in graph.nodes]
-    if unknown:
-        raise ValueError("Road network contains edges with unknown nodes")
+    for start, end, distance, travel_time in edge_records:
+        if start not in declared_nodes or end not in declared_nodes:
+            raise ValueError("Road network contains an edge with an undeclared node")
+        if graph.has_edge(start, end):
+            raise ValueError("Road network contains a duplicate edge")
+        graph.add_edge(start, end, distance=distance, travel_time=travel_time)
     return graph
 
 def calculate_route(graph: nx.Graph, origin: str, destination: str,
