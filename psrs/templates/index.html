@@ -1,52 +1,94 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ project_name }} | Predictive Supply Resilience System</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 70rem; color: #172033; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
-    .card { border: 1px solid #d9e0ea; border-radius: .6rem; padding: 1rem; background: #f8fafc; }
-    .value { font-size: 1.7rem; font-weight: 700; }
-    .muted { color: #526174; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { border-bottom: 1px solid #d9e0ea; padding: .5rem; text-align: left; }
-    code { background: #eef2f7; padding: .1rem .25rem; }
+    :root{color-scheme:light;--ink:#172033;--muted:#526174;--line:#d9e0ea;--panel:#f8fafc;--blue:#1d4ed8}
+    body{font-family:system-ui,sans-serif;margin:2rem auto;max-width:76rem;padding:0 1rem;color:var(--ink)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1rem}
+    .card{border:1px solid var(--line);border-radius:.6rem;padding:1rem;background:var(--panel)}
+    .value{font-size:1.7rem;font-weight:700;overflow-wrap:anywhere}.muted{color:var(--muted)}
+    table{border-collapse:collapse;width:100%;margin-top:1rem}th,td{border-bottom:1px solid var(--line);padding:.6rem;text-align:left}
+    code{background:#eef2f7;padding:.1rem .25rem}#map{height:390px;border:1px solid var(--line);border-radius:.6rem;margin:1rem 0}
+    .controls{display:flex;flex-wrap:wrap;gap:.7rem;align-items:end;margin-top:1rem}
+    label{display:grid;gap:.25rem;font-size:.9rem}select,input,button{font:inherit;padding:.55rem;border:1px solid #aab6c5;border-radius:.4rem}
+    button{cursor:pointer;background:var(--blue);color:white;border-color:var(--blue)}
+    @media(max-width:600px){body{margin:1rem auto}#map{height:300px}}
   </style>
 </head>
-<body>
-  <main>
-    <h1>{{ project_name }}</h1>
-    <p class="muted">Synthetic-only, uncertainty-aware logistics decision support.</p>
-    <p id="notice">Generate data with <code>python scripts/generate_synthetic_data.py</code> to populate the dashboard.</p>
-    <section class="grid" aria-label="Dataset summary">
-      <div class="card"><div class="muted">Dataset</div><div class="value" id="dataset">—</div></div>
-      <div class="card"><div class="muted">Demand rows</div><div class="value" id="demand-rows">—</div></div>
-      <div class="card"><div class="muted">Inventory events</div><div class="value" id="inventory-events">—</div></div>
-      <div class="card"><div class="muted">Locations / items</div><div class="value" id="dimensions">—</div></div>
-    </section>
-    <section>
-      <h2>Example forecast</h2>
-      <table><thead><tr><th>Model</th><th>Location</th><th>Item</th><th>Next 7 days</th></tr></thead>
-      <tbody id="forecast"><tr><td colspan="4">Loading…</td></tr></tbody></table>
-    </section>
-    <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a></p>
-  </main>
-  <script>
-    async function loadDashboard() {
-      const summary = await fetch("/api/summary").then(response => response.json());
-      document.querySelector("#dataset").textContent = summary.dataset_available ? "Ready" : "Missing";
-      document.querySelector("#demand-rows").textContent = summary.demand_rows;
-      document.querySelector("#inventory-events").textContent = summary.inventory_events;
-      document.querySelector("#dimensions").textContent = `${summary.locations} / ${summary.items}`;
-      if (!summary.dataset_available) return;
-      const forecast = await fetch("/api/forecast").then(response => response.json());
-      document.querySelector("#forecast").innerHTML =
-        `<tr><td>${forecast.model}</td><td>${forecast.location_id}</td><td>${forecast.item_id}</td><td>${forecast.predictions.join(", ")}</td></tr>`;
-      document.querySelector("#notice").textContent = "Forecasts are synthetic estimates; review assumptions before using them.";
-    }
-    loadDashboard().catch(() => { document.querySelector("#notice").textContent = "Dashboard data is unavailable."; });
-  </script>
-</body>
-</html>
+<body><main>
+  <h1>{{ project_name }}</h1>
+  <p class="muted">Synthetic-only, uncertainty-aware logistics decision support. All locations and conditions are fictional.</p>
+  <p id="notice" role="status">Generate data with <code>python scripts/generate_synthetic_data.py</code> to populate the dashboard.</p>
+  <section class="grid" aria-label="Dataset summary">
+    <div class="card"><div class="muted">Dataset</div><div class="value" id="dataset">—</div></div>
+    <div class="card"><div class="muted">Demand rows</div><div class="value" id="demand-rows">—</div></div>
+    <div class="card"><div class="muted">Inventory events</div><div class="value" id="inventory-events">—</div></div>
+    <div class="card"><div class="muted">Locations / items</div><div class="value" id="dimensions">—</div></div>
+  </section>
+  <section><h2>Demand forecast</h2>
+    <div class="controls">
+      <label>Location <select id="location"><option>LOC-01</option><option>LOC-02</option><option>LOC-03</option><option>LOC-04</option><option>LOC-05</option><option>LOC-06</option></select></label>
+      <label>Item <select id="item"><option>ITEM-001</option><option>ITEM-002</option><option>ITEM-003</option><option>ITEM-004</option><option>ITEM-005</option><option>ITEM-006</option><option>ITEM-007</option><option>ITEM-008</option></select></label>
+      <label>Forecast days <input id="horizon" type="number" min="1" max="90" value="7"></label><button id="forecast-button" type="button">Run forecast</button>
+    </div>
+    <table><thead><tr><th>Model</th><th>Location</th><th>Item</th><th>Predictions</th><th>Baseline MAE</th><th>ML MAE</th><th>WAPE (baseline / ML)</th></tr></thead>
+    <tbody id="forecast"><tr><td colspan="7">Loading…</td></tr></tbody></table>
+  </section>
+  <section><h2>Fictional road network</h2>
+    <p class="muted">Route distance uses synthetic edge weights. Travel time is an assumption, not real traffic information.</p>
+    <div class="controls">
+      <label>Origin <select id="origin"><option>LOC-01</option><option>LOC-02</option><option>LOC-03</option><option>LOC-04</option><option>LOC-05</option><option>LOC-06</option></select></label>
+      <label>Destination <select id="destination"><option>LOC-04</option><option>LOC-02</option><option>LOC-03</option><option>LOC-05</option><option>LOC-06</option><option>LOC-01</option></select></label>
+      <label>Weather delay factor <input id="weather" type="number" min="1" max="10" step=".1" value="1"></label><button id="route-button" type="button">Calculate route</button>
+    </div>
+    <div id="map" aria-label="Map of fictional logistics locations"></div><p id="route-result" role="status" class="muted">Route not calculated yet.</p>
+  </section>
+  <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a> · <a href="/api/route">Route API</a></p>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)}, map=null, routeLayer=null;
+  var locations={"LOC-01":[0,0],"LOC-02":[4,2],"LOC-03":[2,6],"LOC-04":[8,3],"LOC-05":[7,8],"LOC-06":[11,6]};
+  var edges=[["LOC-01","LOC-02"],["LOC-01","LOC-03"],["LOC-02","LOC-04"],["LOC-03","LOC-05"],["LOC-04","LOC-05"],["LOC-05","LOC-06"]];
+  function initMap(){
+    if(!window.L){$("#route-result").textContent="Map library unavailable; route API remains available.";return}
+    map=L.map("map").setView([4,5],6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+    Object.keys(locations).forEach(function(id){var xy=locations[id];L.marker([xy[1],xy[0]]).addTo(map).bindPopup(id+" (fictional)")});
+    edges.forEach(function(e){var a=locations[e[0]],b=locations[e[1]];L.polyline([[a[1],a[0]],[b[1],b[0]]],{color:"#94a3b8"}).addTo(map)});
+  }
+  async function loadSummary(){
+    var response=await fetch("/api/summary"),s=await response.json();
+    $("#dataset").textContent=s.dataset_available?"Ready":"Missing";
+    $("#demand-rows").textContent=s.demand_rows;$("#inventory-events").textContent=s.inventory_events;
+    $("#dimensions").textContent=s.locations+" / "+s.items;
+    if(!s.dataset_available)$("#notice").textContent="Generate the synthetic dataset to enable forecasting and reconciliation.";
+  }
+  async function runForecast(){
+    var p=new URLSearchParams({location_id:$("#location").value,item_id:$("#item").value,horizon:$("#horizon").value});
+    var response=await fetch("/api/forecast?"+p),r=await response.json();
+    if(!response.ok)throw new Error(r.error||"Forecast unavailable");
+    var vals=[r.model,r.location_id,r.item_id,r.predictions.join(", "),r.baseline_mae==null?"n/a":r.baseline_mae,
+      r.ml_mae==null?"n/a":r.ml_mae,(r.baseline_wape==null?"n/a":r.baseline_wape)+" / "+(r.ml_wape==null?"n/a":r.ml_wape)];
+    var row=document.createElement("tr");
+    vals.forEach(function(v){var cell=document.createElement("td");cell.textContent=String(v);row.appendChild(cell)});
+    $("#forecast").replaceChildren(row);
+  }
+  async function runRoute(){
+    var p=new URLSearchParams({origin:$("#origin").value,destination:$("#destination").value,weather_factor:$("#weather").value});
+    var response=await fetch("/api/route?"+p),r=await response.json();
+    if(!response.ok)throw new Error(r.error||"Route unavailable");
+    $("#route-result").textContent=r.feasible?"Feasible route: "+r.nodes.join(" → ")+" | distance "+r.distance+" synthetic units | estimated travel time "+r.travel_time+" synthetic units":"No feasible route: "+r.reason;
+    if(map&&routeLayer)map.removeLayer(routeLayer);
+    if(map&&r.feasible){routeLayer=L.polyline(r.nodes.map(function(id){return [locations[id][1],locations[id][0]]}),{color:"#1d4ed8",weight:5}).addTo(map);map.fitBounds(routeLayer.getBounds(),{padding:[20,20]})}
+  }
+  $("#forecast-button").addEventListener("click",function(){runForecast().catch(function(e){$("#notice").textContent=e.message})});
+  $("#route-button").addEventListener("click",function(){runRoute().catch(function(e){$("#route-result").textContent=e.message})});
+  initMap();loadSummary().then(runForecast).catch(function(e){$("#notice").textContent=e.message});
+  runRoute().catch(function(e){$("#route-result").textContent=e.message});
+})();
+</script></body></html>

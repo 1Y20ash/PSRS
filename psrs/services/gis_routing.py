@@ -1,13 +1,10 @@
-"""Routing over a fictional, validated road graph."""
+"""Validated routing over a fictional road graph."""
 from __future__ import annotations
-
 import json
+import math
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Mapping
-
 import networkx as nx
-
 
 @dataclass(frozen=True)
 class RouteResult:
@@ -18,38 +15,58 @@ class RouteResult:
     travel_time: float | None
     nodes: list[str]
     reason: str | None = None
-
     def to_dict(self) -> dict:
         return asdict(self)
 
-
 def load_graph(geojson_path: str | Path) -> nx.Graph:
     payload = json.loads(Path(geojson_path).read_text(encoding="utf-8"))
+    if payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
+        raise ValueError("Road network must be a GeoJSON FeatureCollection")
     graph = nx.Graph()
-    for feature in payload.get("features", []):
-        properties = feature.get("properties", {})
-        geometry = feature.get("geometry", {})
-        if properties.get("type") == "node":
-            node_id = properties["node_id"]
-            graph.add_node(node_id, x=geometry["coordinates"][0], y=geometry["coordinates"][1])
-        elif properties.get("type") == "edge":
-            graph.add_edge(
-                properties["from"],
-                properties["to"],
-                distance=float(properties["distance"]),
-                travel_time=float(properties.get("travel_time", properties["distance"])),
-            )
+    for feature in payload["features"]:
+        if not isinstance(feature, dict):
+            raise ValueError("Every GeoJSON feature must be an object")
+        properties, geometry = feature.get("properties") or {}, feature.get("geometry") or {}
+        try:
+            if properties.get("type") == "node":
+                node_id = str(properties["node_id"])
+                coords = geometry["coordinates"]
+                x, y = float(coords[0]), float(coords[1])
+                if not node_id or not math.isfinite(x) or not math.isfinite(y):
+                    raise ValueError
+                if not (-180 <= x <= 180 and -90 <= y <= 90):
+                    raise ValueError
+                if node_id in graph:
+                    raise ValueError("Duplicate road node")
+                graph.add_node(node_id, x=x, y=y)
+            elif properties.get("type") == "edge":
+                start, end = str(properties["from"]), str(properties["to"])
+                distance = float(properties["distance"])
+                travel_time = float(properties.get("travel_time", distance))
+                if start == end or distance <= 0 or travel_time <= 0:
+                    raise ValueError
+                if not math.isfinite(distance) or not math.isfinite(travel_time):
+                    raise ValueError
+                graph.add_edge(start, end, distance=distance, travel_time=travel_time)
+        except (KeyError, TypeError, IndexError, ValueError) as exc:
+            raise ValueError("Invalid road-network node or edge properties") from exc
     if not graph.nodes:
         raise ValueError("Road network contains no nodes")
+    unknown = [(a, b) for a, b in graph.edges if a not in graph.nodes or b not in graph.nodes]
+    if unknown:
+        raise ValueError("Road network contains edges with unknown nodes")
     return graph
 
-
-def calculate_route(graph: nx.Graph, origin: str, destination: str, weather_factor: float = 1.0) -> RouteResult:
+def calculate_route(graph: nx.Graph, origin: str, destination: str,
+                    weather_factor: float = 1.0) -> RouteResult:
+    if not math.isfinite(float(weather_factor)) or weather_factor < 1.0 or weather_factor > 10.0:
+        raise ValueError("weather_factor must be finite and between 1 and 10")
     if origin not in graph or destination not in graph:
         return RouteResult(origin, destination, False, None, None, [], "unknown_node")
-    if not nx.has_path(graph, origin, destination):
+    try:
+        nodes = nx.shortest_path(graph, origin, destination, weight="distance")
+    except nx.NetworkXNoPath:
         return RouteResult(origin, destination, False, None, None, [], "unreachable")
-    nodes = nx.shortest_path(graph, origin, destination, weight="distance")
     distance = sum(graph[a][b]["distance"] for a, b in zip(nodes, nodes[1:]))
-    travel_time = sum(graph[a][b]["travel_time"] for a, b in zip(nodes, nodes[1:])) * max(1.0, weather_factor)
+    travel_time = sum(graph[a][b]["travel_time"] for a, b in zip(nodes, nodes[1:])) * weather_factor
     return RouteResult(origin, destination, True, round(distance, 3), round(travel_time, 3), nodes)
