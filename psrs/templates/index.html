@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1324">
   <title>{{ project_name }} | Predictive Supply Resilience System</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
@@ -188,33 +189,18 @@
             </div>
             <span class="panel-tag neutral">GeoJSON / NetworkX</span>
           </div>
-          <div class="network-visual">
-            <svg class="network-svg" viewBox="0 0 560 210" role="img" aria-labelledby="network-title network-description">
-              <title id="network-title">Fictional six-location road network</title>
-              <desc id="network-description">Six locations connected by the routes 01 to 02, 01 to 03, 02 to 04, 03 to 05, 04 to 05, and 05 to 06.</desc>
-              <g class="network-grid" aria-hidden="true">
-                <path d="M20 35H540M20 105H540M20 175H540"></path>
-              </g>
-              <g class="network-edges" aria-hidden="true">
-                <line x1="66" y1="144" x2="188" y2="58"></line>
-                <line x1="66" y1="144" x2="150" y2="178"></line>
-                <line x1="188" y1="58" x2="332" y2="78"></line>
-                <line x1="150" y1="178" x2="365" y2="150"></line>
-                <line x1="332" y1="78" x2="365" y2="150"></line>
-                <line x1="365" y1="150" x2="492" y2="108"></line>
-              </g>
-              <g class="network-node node-a"><circle cx="66" cy="144" r="18"></circle><text x="66" y="144">01</text></g>
-              <g class="network-node node-b"><circle cx="188" cy="58" r="18"></circle><text x="188" y="58">02</text></g>
-              <g class="network-node node-c"><circle cx="150" cy="178" r="18"></circle><text x="150" y="178">03</text></g>
-              <g class="network-node node-d"><circle cx="332" cy="78" r="18"></circle><text x="332" y="78">04</text></g>
-              <g class="network-node node-e"><circle cx="365" cy="150" r="18"></circle><text x="365" y="150">05</text></g>
-              <g class="network-node node-f"><circle cx="492" cy="108" r="18"></circle><text x="492" y="108">06</text></g>
-              <g class="network-labels" aria-hidden="true">
-                <text x="66" y="180" text-anchor="middle">Hub A</text>
-                <text x="492" y="143" text-anchor="middle">Point F</text>
-              </g>
-            </svg>
+          <div class="map-toolbar" aria-label="Map controls">
+            <div class="map-key">
+              <span><i class="legend-dot connected"></i> Road connection</span>
+              <span><i class="legend-dot route-key"></i> Selected route</span>
+              <span><i class="legend-dot fictional"></i> Synthetic location</span>
+            </div>
+            <button id="fit-network" class="quiet-button" type="button">Fit network</button>
           </div>
+          <div id="route-map" class="route-map" role="application" aria-label="Interactive fictional supply network map">
+            <p class="map-fallback">Interactive map is loading. Route choices remain available below.</p>
+          </div>
+          <div class="map-caption"><span>SCHEMATIC NETWORK</span><span>Fictional coordinates · Not for navigation</span></div>
           <form id="route-form" class="route-controls">
             <div class="field">
               <label for="origin">From</label>
@@ -324,6 +310,7 @@
       </footer>
     </main>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>
