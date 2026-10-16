@@ -31,7 +31,8 @@ Generate reproducible fictional data and run the application:
     python app.py
 
 Dashboard: http://127.0.0.1:5000/  
-Health: http://127.0.0.1:5000/health
+Health: http://127.0.0.1:5000/health  
+Integrated planning API: http://127.0.0.1:5000/api/planning
 
 ## Implemented modules
 
@@ -41,8 +42,9 @@ Health: http://127.0.0.1:5000/health
 - Inventory simulation with documented delivery-before-demand ordering and synthetic delay factors.
 - Plan evaluation with independent hard-capacity and route-feasibility checks.
 - SQLite persistence for algorithm-visible inputs.
-- Flask APIs for summary, forecast, inventory, route and illustrative plan evaluation.
-- Leaflet map for the fictional road graph. Online map tiles require internet; routing calculations are local.
+- Flask APIs for summary, forecast, inventory, route, illustrative plan evaluation, and an integrated planning report.
+- Leaflet displays a fictional grid rather than real-world geography. The pinned Leaflet library is loaded from a CDN; routing calculations remain local.
+- The integrated planning endpoint composes forecast, reconciled inventory, routing, capacity checks and nominal/adverse synthetic scenarios. Its replenishment policy is a transparent heuristic, not an optimizer.
 - Unit/integration tests and GitHub Actions CI.
 
 ## Synthetic data and ground truth isolation
