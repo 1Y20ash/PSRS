@@ -43,7 +43,7 @@ def create_app(config_class=Config):
         response.headers.setdefault("Content-Security-Policy",
             "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; "
             "style-src 'self' 'unsafe-inline' https://unpkg.com; "
-            "img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'; "
             "object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         return response
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ project_name }} | Predictive Supply Resilience System</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <style>
     :root{color-scheme:light;--ink:#172033;--muted:#526174;--line:#d9e0ea;--panel:#f8fafc;--blue:#1d4ed8}
     body{font-family:system-ui,sans-serif;margin:2rem auto;max-width:76rem;padding:0 1rem;color:var(--ink)}
@@ -38,7 +38,7 @@
     <tbody id="forecast"><tr><td colspan="7">Loading…</td></tr></tbody></table>
   </section>
   <section><h2>Fictional road network</h2>
-    <p class="muted">Route distance uses synthetic edge weights. Travel time is an assumption, not real traffic information.</p>
+    <p class="muted">This is a fictional grid, not a real-world map. Route distance uses synthetic edge weights; travel time is an assumption.</p>
     <div class="controls">
       <label>Origin <select id="origin"><option>LOC-01</option><option>LOC-02</option><option>LOC-03</option><option>LOC-04</option><option>LOC-05</option><option>LOC-06</option></select></label>
       <label>Destination <select id="destination"><option>LOC-04</option><option>LOC-02</option><option>LOC-03</option><option>LOC-05</option><option>LOC-06</option><option>LOC-01</option></select></label>
@@ -48,7 +48,7 @@
   </section>
   <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a> · <a href="/api/route">Route API</a></p>
 </main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function(){
   var $=function(s){return document.querySelector(s)}, map=null, routeLayer=null;
@@ -56,8 +56,8 @@
   var edges=[["LOC-01","LOC-02"],["LOC-01","LOC-03"],["LOC-02","LOC-04"],["LOC-03","LOC-05"],["LOC-04","LOC-05"],["LOC-05","LOC-06"]];
   function initMap(){
     if(!window.L){$("#route-result").textContent="Map library unavailable; route API remains available.";return}
-    map=L.map("map").setView([4,5],6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+    map=L.map("map",{crs:L.CRS.Simple}).setView([4,5],0);
+    map.fitBounds([[0,0],[11,11]]);
     Object.keys(locations).forEach(function(id){var xy=locations[id];L.marker([xy[1],xy[0]]).addTo(map).bindPopup(id+" (fictional)")});
     edges.forEach(function(e){var a=locations[e[0]],b=locations[e[1]];L.polyline([[a[1],a[0]],[b[1],b[0]]],{color:"#94a3b8"}).addTo(map)});
   }
