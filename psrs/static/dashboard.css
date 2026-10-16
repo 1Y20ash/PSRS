@@ -504,3 +504,48 @@ button:disabled { opacity: .58; cursor: wait; transform: none !important; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration:.01ms !important; animation-duration:.01ms !important; }
 }
+
+/* Final contrast pass: keep every dashboard section in the glass theme. */
+.learning-section,
+.glossary-section {
+  color: var(--ink);
+  background: linear-gradient(135deg, rgba(255,255,255,.085), rgba(255,255,255,.025));
+  border: 1px solid rgba(218,234,255,.17);
+  border-radius: 20px;
+  box-shadow: 0 16px 44px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+.inventory-highlight {
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(210,229,255,.13);
+  border-radius: 15px;
+}
+.ring-chart {
+  background: radial-gradient(closest-side, #12233b 76%, transparent 77% 99%), conic-gradient(#68e0d1 78%, rgba(210,229,255,.16) 0);
+  color: #a9f6e8;
+}
+.planning-result {
+  background: rgba(8,17,31,.28);
+  border-color: rgba(210,229,255,.15);
+  border-radius: 14px;
+}
+.result-stat {
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(210,229,255,.09);
+  border-radius: 10px;
+}
+.forecast-summary {
+  border-color: rgba(210,229,255,.13);
+}
+.learning-section .section-heading,
+.glossary-section .section-heading {
+  color: var(--ink);
+}
+.glossary-grid details {
+  background: rgba(255,255,255,.035);
+}
+@media (max-width: 720px) {
+  .learning-section,
+  .glossary-section { border-radius: 16px; }
+}
