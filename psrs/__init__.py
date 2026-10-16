@@ -53,7 +53,8 @@ def create_app(config_class=Config):
 
     @application.get("/health")
     def health():
-        return jsonify({"status": "ok", "project": "PSRS", "data_mode": "synthetic-only"})
+        # Preserve the original response contract for existing health-check clients.
+        return jsonify({"status": "ok", "project": "PSRS"})
 
     @application.get("/api/summary")
     def summary():
@@ -74,9 +75,11 @@ def create_app(config_class=Config):
         if not demand:
             return jsonify({"error": "Generate a synthetic dataset before forecasting"}), 404
         try:
+            horizon_arg = request.args.get("horizon", "7")
+            if not horizon_arg.isdigit():
+                raise ValueError("horizon must be an integer between 1 and 90")
             result = forecast_demand(demand, request.args.get("location_id", "LOC-01"),
-                request.args.get("item_id", "ITEM-001"), request.args.get("horizon", default=7, type=int),
-                request.args.get("model", "auto"))
+                request.args.get("item_id", "ITEM-001"), int(horizon_arg), request.args.get("model", "auto"))
         except (ValueError, TypeError) as exc:
             return jsonify({"error": str(exc)}), 400
         return jsonify(result.to_dict())

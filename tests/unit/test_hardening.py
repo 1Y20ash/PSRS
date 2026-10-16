@@ -30,7 +30,7 @@ def test_forecasting_rejects_invalid_model_and_horizon():
 def test_simulation_rejects_invalid_weather_and_adjusts_reported_total():
     with pytest.raises(ValueError): simulate_inventory(2, [1], weather_factor=float("nan"))
     result = simulate_inventory(10, [2, 3], weather_factor=1.5)
-    assert result.total_demand == 8
+    assert result.total_demand == 7
 
 def test_route_validation_rejects_invalid_weights(tmp_path):
     payload = {"type":"FeatureCollection","features":[

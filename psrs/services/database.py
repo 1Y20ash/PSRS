@@ -29,7 +29,7 @@ def import_algorithm_inputs(database_path: str | Path, data_dir: str | Path) -> 
             [(r["item_id"],r["category"],r["unit"],r["criticality"]) for r in items])
         db.executemany("INSERT INTO locations VALUES(?,?,?,?,?) ON CONFLICT(location_id) DO UPDATE SET location_name=excluded.location_name,x=excluded.x,y=excluded.y,location_type=excluded.location_type",
             [(r["location_id"],r["location_name"],float(r["x"]),float(r["y"]),r["location_type"]) for r in locations])
-        db.executemany("INSERT OR IGNORE INTO inventory_events VALUES(?,?,?,?,?,?)",
+        db.executemany("INSERT INTO inventory_events VALUES(?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET event_date=excluded.event_date,location_id=excluded.location_id,item_id=excluded.item_id,event_type=excluded.event_type,quantity=excluded.quantity",
             [(r["event_id"],r["event_date"],r["location_id"],r["item_id"],r["event_type"],int(r["quantity"])) for r in events])
         db.executemany("INSERT INTO demand_history VALUES(?,?,?,?) ON CONFLICT(location_id,item_id,date) DO UPDATE SET demand_units=excluded.demand_units",
             [(r["location_id"],r["item_id"],r["date"],int(r["demand_units"])) for r in demand])
