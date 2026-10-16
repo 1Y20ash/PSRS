@@ -9,6 +9,7 @@ from psrs.services.demand_forecasting import forecast_demand
 from psrs.services.inventory_reconciliation import reconcile_inventory
 from psrs.services.gis_routing import load_graph, calculate_route
 from psrs.services.plan_evaluation import evaluate_plan
+from psrs.services.planning_workflow import build_planning_report
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def create_app(config_class=Config):
         response.headers.setdefault("Content-Security-Policy",
             "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; "
             "style-src 'self' 'unsafe-inline' https://unpkg.com; "
-            "img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'; "
             "object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         return response
 
@@ -103,6 +104,27 @@ def create_app(config_class=Config):
         except (ValueError, OSError, TypeError) as exc:
             return jsonify({"error": str(exc)}), 400
         return jsonify(result.to_dict())
+
+    @application.get("/api/planning")
+    def planning():
+        try:
+            demand, events = algorithm_inputs()
+            if not demand or not events:
+                return jsonify({"error": "Generate a synthetic dataset before planning"}), 404
+            horizon_arg = request.args.get("horizon", "7")
+            capacity_arg = request.args.get("capacity_limit", "100")
+            if not horizon_arg.isdigit() or not capacity_arg.isdigit():
+                raise ValueError("horizon and capacity_limit must be non-negative integers")
+            report = build_planning_report(
+                demand_rows=demand, inventory_events=events, road_graph=road_graph(),
+                location_id=request.args.get("location_id", "LOC-01"),
+                item_id=request.args.get("item_id", "ITEM-001"),
+                origin=request.args.get("origin", "LOC-01"),
+                destination=request.args.get("destination", "LOC-04"),
+                horizon=int(horizon_arg), capacity_limit=int(capacity_arg))
+        except (ValueError, OSError, TypeError, RuntimeError) as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify(report)
 
     @application.get("/api/plan")
     def plan():

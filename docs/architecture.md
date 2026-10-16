@@ -27,8 +27,11 @@ Phase 1 established a thin root-level Flask entry point and the `psrs` applicati
 - `gis_routing.py` loads the committed fictional GeoJSON network and calculates weighted shortest paths while reporting unreachable destinations.
 - `scenario_simulation.py` applies demand, deliveries, delays, and synthetic weather factors in a defined day-by-day order.
 - `plan_evaluation.py` checks hard capacity and route constraints independently from the objective score.
-- Flask routes expose summary, forecast, and reconciliation results to the dashboard without placing domain logic in templates.
+- `database.py` imports only algorithm-visible CSV inputs into SQLite with keys and checks; it does not read evaluation-only ground truth.
+- `planning_workflow.py` composes forecasting, reconciliation, routing, simulation and plan evaluation for nominal and adverse synthetic scenarios.
+- Flask exposes `/api/planning` and a dashboard action to run the composed workflow. The current candidate replenishment policy is a transparent heuristic, not an optimizer.
+- The dashboard map uses Leaflet's simple-coordinate grid, avoiding any implication that fictional coordinates identify real locations.
 
-The remaining major work is comparative experimental execution, richer persistence, and broader integration/end-to-end coverage.
+The full A/B/C comparative logistics experiment, hidden inventory ground truth, uncertainty-calibration study, candidate-plan optimization, and final end-to-end verification remain outstanding.
 
 Each module should define input/output contracts and be independently testable. Evaluation-only ground truth must remain isolated from forecasting and planning inputs. Future phases should add schema validation and ensure no evaluation labels are passed into candidate algorithms.
