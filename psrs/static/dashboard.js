@@ -112,7 +112,8 @@
       marker.on("click", () => {
         const origin = $("#origin");
         const destination = $("#destination");
-        if (origin.value === destination.value || origin.dataset.nextPick === "origin") {
+        const nextPick = origin.dataset.nextPick || "origin";
+        if (nextPick === "origin") {
           origin.value = node.id;
           origin.dataset.nextPick = "destination";
         } else {
