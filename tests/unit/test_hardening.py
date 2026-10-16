@@ -54,3 +54,13 @@ def test_plan_constraints_are_hard():
     assert not result.feasible
     assert "shared_transport_capacity_exceeded" in result.violations
     with pytest.raises(ValueError): evaluate_plan(unmet_demand=-1, distance=0, deliveries=[], capacity_limit=1)
+
+
+def test_route_validation_rejects_edges_to_undeclared_nodes(tmp_path):
+    payload = {"type":"FeatureCollection","features":[
+      {"type":"Feature","properties":{"type":"node","node_id":"A"},"geometry":{"type":"Point","coordinates":[0,0]}},
+      {"type":"Feature","properties":{"type":"edge","from":"A","to":"MISSING","distance":2},"geometry":None}]}
+    path = tmp_path / "unknown-node.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="undeclared node"):
+        load_graph(path)
