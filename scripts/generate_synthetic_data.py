@@ -1,6 +1,11 @@
 """Command-line entry point for generating the PSRS synthetic dataset."""
 import argparse
+import sys
 from pathlib import Path
+
+# Keep the documented ``python scripts/generate_synthetic_data.py`` command
+# working without requiring the repository to be installed as a package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from psrs.services.synthetic_data import DEFAULT_SEED, generate_dataset
 

@@ -4,13 +4,49 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ project_name }} | Predictive Supply Resilience System</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 70rem; color: #172033; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #d9e0ea; border-radius: .6rem; padding: 1rem; background: #f8fafc; }
+    .value { font-size: 1.7rem; font-weight: 700; }
+    .muted { color: #526174; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border-bottom: 1px solid #d9e0ea; padding: .5rem; text-align: left; }
+    code { background: #eef2f7; padding: .1rem .25rem; }
+  </style>
 </head>
 <body>
   <main>
     <h1>{{ project_name }}</h1>
-    <p>Predictive Supply Resilience System</p>
-    <p>Phase 1 foundation is running. Feature modules have not been implemented yet.</p>
-    <p><a href="/health">Check application health</a></p>
+    <p class="muted">Synthetic-only, uncertainty-aware logistics decision support.</p>
+    <p id="notice">Generate data with <code>python scripts/generate_synthetic_data.py</code> to populate the dashboard.</p>
+    <section class="grid" aria-label="Dataset summary">
+      <div class="card"><div class="muted">Dataset</div><div class="value" id="dataset">—</div></div>
+      <div class="card"><div class="muted">Demand rows</div><div class="value" id="demand-rows">—</div></div>
+      <div class="card"><div class="muted">Inventory events</div><div class="value" id="inventory-events">—</div></div>
+      <div class="card"><div class="muted">Locations / items</div><div class="value" id="dimensions">—</div></div>
+    </section>
+    <section>
+      <h2>Example forecast</h2>
+      <table><thead><tr><th>Model</th><th>Location</th><th>Item</th><th>Next 7 days</th></tr></thead>
+      <tbody id="forecast"><tr><td colspan="4">Loading…</td></tr></tbody></table>
+    </section>
+    <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a></p>
   </main>
+  <script>
+    async function loadDashboard() {
+      const summary = await fetch("/api/summary").then(response => response.json());
+      document.querySelector("#dataset").textContent = summary.dataset_available ? "Ready" : "Missing";
+      document.querySelector("#demand-rows").textContent = summary.demand_rows;
+      document.querySelector("#inventory-events").textContent = summary.inventory_events;
+      document.querySelector("#dimensions").textContent = `${summary.locations} / ${summary.items}`;
+      if (!summary.dataset_available) return;
+      const forecast = await fetch("/api/forecast").then(response => response.json());
+      document.querySelector("#forecast").innerHTML =
+        `<tr><td>${forecast.model}</td><td>${forecast.location_id}</td><td>${forecast.item_id}</td><td>${forecast.predictions.join(", ")}</td></tr>`;
+      document.querySelector("#notice").textContent = "Forecasts are synthetic estimates; review assumptions before using them.";
+    }
+    loadDashboard().catch(() => { document.querySelector("#notice").textContent = "Dashboard data is unavailable."; });
+  </script>
 </body>
 </html>

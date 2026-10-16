@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-01"}, "geometry": {"type": "Point", "coordinates": [0, 0]}},
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-02"}, "geometry": {"type": "Point", "coordinates": [4, 2]}},
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-03"}, "geometry": {"type": "Point", "coordinates": [2, 6]}},
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-04"}, "geometry": {"type": "Point", "coordinates": [8, 3]}},
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-05"}, "geometry": {"type": "Point", "coordinates": [7, 8]}},
+    {"type": "Feature", "properties": {"type": "node", "node_id": "LOC-06"}, "geometry": {"type": "Point", "coordinates": [11, 6]}},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-01", "to": "LOC-02", "distance": 4.472, "travel_time": 5.0}, "geometry": null},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-01", "to": "LOC-03", "distance": 6.325, "travel_time": 7.0}, "geometry": null},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-02", "to": "LOC-04", "distance": 4.123, "travel_time": 5.0}, "geometry": null},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-03", "to": "LOC-05", "distance": 5.099, "travel_time": 6.0}, "geometry": null},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-04", "to": "LOC-05", "distance": 5.099, "travel_time": 6.0}, "geometry": null},
+    {"type": "Feature", "properties": {"type": "edge", "from": "LOC-05", "to": "LOC-06", "distance": 5.0, "travel_time": 6.0}, "geometry": null}
+  ]
+}
