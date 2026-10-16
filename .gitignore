@@ -19,6 +19,8 @@ env/
 data/*.sqlite
 data/*.sqlite3
 data/generated/
+data/experiment/
+data/generated-demo/
 models/*
 !models/.gitkeep
 

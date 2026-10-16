@@ -1,159 +1,66 @@
 # PSRS — Predictive Supply Resilience System
 
 **Problem Statement:** PS 26251 — Indian Army: Predictive Logistics & Forward Supply Chain  
-**Status:** Synthetic-only MVP — reconciliation, forecasting, routing, simulation, plan evaluation, and dashboard APIs are implemented; comparative experiments remain pending.
+**Status:** Synthetic-only research prototype. Core services are being hardened; full A/B/C logistics evaluation remains pending.
 
-PSRS is a research prototype for studying demand forecasting, inventory reconciliation, fictional GIS routing, synthetic disruption scenarios, and constraint-aware replenishment planning.
+PSRS studies demand forecasting, inventory reconciliation, fictional GIS routing, synthetic disruption scenarios, and constraint-aware replenishment planning. It uses fictional data only and is not defence-grade certified or intended for real operational deployment.
 
-Development uses synthetic data and fictional locations only. Do not add real military logistics, routes, inventories, schedules, or other operational information. This prototype is not defence-grade certified and is not intended for real operational deployment.
+## Setup
 
-## Phase 1 — repository foundation
+Python 3.10+ is required.
 
-- Flask application factory and local entry point.
-- Environment-based configuration and logging.
-- Placeholder dashboard and health endpoint.
-- Pytest smoke tests and GitHub Actions CI.
-- Architecture, data dictionary, experimental design, and evaluation-reporting notes.
+Windows PowerShell:
 
-## Synthetic data
+    py -3.10 -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    Copy-Item .env.example .env
 
-The data generator creates reproducible CSV files from a seed. It currently defines 8 fictional item types and 6 fictional grid locations, with historical demand, inventory events, and a future evaluation window.
+macOS/Linux:
 
-### Generate the dataset
+    python3 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    cp .env.example .env
 
-Run from the repository root after installing requirements:
+Generate reproducible fictional data and run the application:
 
-```bash
-python scripts/generate_synthetic_data.py
-```
+    python scripts/generate_synthetic_data.py --seed 26251 --historical-days 90 --forecast-days 14
+    python app.py
 
-By default, files are written to the ignored local folder `data/generated/`. You can choose a seed and time-window sizes:
+Dashboard: http://127.0.0.1:5000/  
+Health: http://127.0.0.1:5000/health
 
-```bash
-python scripts/generate_synthetic_data.py --seed 26251 --historical-days 90 --forecast-days 14
-python scripts/generate_synthetic_data.py --output data/generated-demo --seed 7
-```
+## Implemented modules
 
-Generated files:
+- Inventory ledger reconstruction with duplicate/conflict detection and raw negative-balance visibility.
+- Moving-average baseline and lag-feature Random Forest with chronological validation, MAE and WAPE.
+- GeoJSON validation and shortest-path routing over fictional locations.
+- Inventory simulation with documented delivery-before-demand ordering and synthetic delay factors.
+- Plan evaluation with independent hard-capacity and route-feasibility checks.
+- SQLite persistence for algorithm-visible inputs.
+- Flask APIs for summary, forecast, inventory, route and illustrative plan evaluation.
+- Leaflet map for the fictional road graph. Online map tiles require internet; routing calculations are local.
+- Unit/integration tests and GitHub Actions CI.
 
-| File | Purpose |
-|---|---|
-| `items.csv` | Fictional item categories, units, and criticality |
-| `locations.csv` | Fictional location names and grid coordinates |
-| `inventory_events.csv` | Opening-balance, issue, and receipt events |
-| `demand_history.csv` | Historical demand available to algorithms |
-| `evaluation_ground_truth.csv` | Future actual demand reserved for evaluation only |
-| `dataset_manifest.json` | Seed, date split, row counts, schema version, and isolation warning |
+## Synthetic data and ground truth isolation
 
-**No leakage:** `evaluation_ground_truth.csv` is intentionally separate from algorithm-visible files. Do not load it during training, forecasting, or planning. Use it only after a candidate has produced predictions or plans for the evaluation dates.
+The generator writes items, locations, inventory events, historical demand, future evaluation ground truth, and a manifest under ignored local data directories. The database importer reads only items, locations, inventory events and historical demand; it never opens the ground-truth file. Evaluation labels may be consulted only after forecasts or plans have been generated.
 
-The same seed and arguments produce byte-identical files. Generated datasets are not committed by default; rerun the generator when needed.
+## Experiments
 
-## Requirements
+Run a reproducible forecasting-only comparison:
 
-- Python 3.10 or newer
-- Git
+    python scripts/run_experiments.py --seed 26251 --historical-days 90 --forecast-days 14
 
-## Setup — Windows PowerShell
+The generated local report compares baseline, ML and automatic model selection with MAE/WAPE. This does **not** complete the PDP's A/B/C integrated logistics experiment. No integrated improvement is claimed until those configurations have been implemented and evaluated on equivalent scenario inputs.
 
-```powershell
-py -3.10 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-Copy-Item .env.example .env
-```
+## Quality and security
 
-## Setup — macOS/Linux
+    python -m pytest -q
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env
-```
+Configure a random PSRS_SECRET_KEY before enabling session-based features. Set PSRS_COOKIE_SECURE=true behind HTTPS and PSRS_TRUSTED_HOSTS for a known deployment. Never commit .env, local databases, generated datasets or model artifacts. See docs/security.md.
 
-## Run the web app
-
-```bash
-python app.py
-```
-
-- Dashboard: http://127.0.0.1:5000/
-- Health check: http://127.0.0.1:5000/health
-
-## Tests
-
-```bash
-python -m pytest -q
-```
-
-CI installs dependencies from `requirements.txt` and runs the full test suite on pull requests and pushes.
-
-## Core services
-
-The current MVP exposes tested service modules for:
-
-- `psrs/services/inventory_reconciliation.py` — ledger arithmetic, duplicate detection, invalid-event reporting, and evidence-based stock bounds.
-- `psrs/services/demand_forecasting.py` — moving-average baseline and a chronological lag-feature random-forest comparison.
-- `psrs/services/gis_routing.py` — fictional GeoJSON graph loading and shortest-path feasibility.
-- `psrs/services/scenario_simulation.py` — stock, demand, delivery-delay, weather-factor, and shortage simulation.
-- `psrs/services/plan_evaluation.py` — hard-capacity and route-feasibility checks with explainable scores.
-
-Generate data before using the forecast and inventory API endpoints:
-
-```powershell
-python scripts/generate_synthetic_data.py
-python app.py
-```
-
-The dashboard is available at `http://127.0.0.1:5000/`. API routes include `/api/summary`, `/api/forecast`, and `/api/inventory`. All generated values and routes are fictional and must not be interpreted as operational information.
-
-## Project structure
-
-```text
-PSRS/
-├── app.py
-├── config.py
-├── requirements.txt
-├── README.md
-├── .env.example
-├── .gitignore
-├── psrs/
-│   ├── services/
-│   │   └── synthetic_data.py
-│   ├── templates/
-│   └── static/
-├── scripts/
-│   └── generate_synthetic_data.py
-├── data/synthetic/
-├── models/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── end_to_end/
-├── docs/
-└── .github/workflows/tests.yml
-```
-
-The application package is named `psrs` so the root-level `app.py` entry point does not conflict with a same-named `app/` Python package.
-
-## Data and security rules
-
-- Use synthetic data and fictional locations only.
-- Keep secrets and local configuration in an untracked `.env` file.
-- Do not commit local databases, generated datasets, or trained artifacts by default.
-- The secret in `.env.example` is a placeholder, not a production secret.
-- The application is a research prototype and has no defence-grade certification.
-
-## Phase status
-
-- [x] Phase 1 repository and CI foundation merged
-- [x] Phase 2 reproducible synthetic data generator implemented on its feature branch
-- [x] Phase 2 CI verification and review
-- [x] Inventory reconciliation MVP
-- [x] Demand forecasting MVP
-- [x] Fictional GIS routing MVP
-- [x] Scenario simulation and plan evaluation MVP
-- [ ] Comparative A/B/C experiments and final evaluation report
+All quantities, locations, routes and disruption scenarios are synthetic. Do not add real military logistics data. This prototype has no operational certification.
