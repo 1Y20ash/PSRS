@@ -1,7 +1,7 @@
 # PSRS — Predictive Supply Resilience System
 
 **Problem Statement:** PS 26251 — Indian Army: Predictive Logistics & Forward Supply Chain  
-**Status:** Phase 2 — reproducible synthetic dataset generator; forecasting and planning features remain pending.
+**Status:** Synthetic-only MVP — reconciliation, forecasting, routing, simulation, plan evaluation, and dashboard APIs are implemented; comparative experiments remain pending.
 
 PSRS is a research prototype for studying demand forecasting, inventory reconciliation, fictional GIS routing, synthetic disruption scenarios, and constraint-aware replenishment planning.
 
@@ -15,7 +15,7 @@ Development uses synthetic data and fictional locations only. Do not add real mi
 - Pytest smoke tests and GitHub Actions CI.
 - Architecture, data dictionary, experimental design, and evaluation-reporting notes.
 
-## Phase 2 — synthetic data
+## Synthetic data
 
 The data generator creates reproducible CSV files from a seed. It currently defines 8 fictional item types and 6 fictional grid locations, with historical demand, inventory events, and a future evaluation window.
 
@@ -91,6 +91,25 @@ python -m pytest -q
 
 CI installs dependencies from `requirements.txt` and runs the full test suite on pull requests and pushes.
 
+## Core services
+
+The current MVP exposes tested service modules for:
+
+- `psrs/services/inventory_reconciliation.py` — ledger arithmetic, duplicate detection, invalid-event reporting, and evidence-based stock bounds.
+- `psrs/services/demand_forecasting.py` — moving-average baseline and a chronological lag-feature random-forest comparison.
+- `psrs/services/gis_routing.py` — fictional GeoJSON graph loading and shortest-path feasibility.
+- `psrs/services/scenario_simulation.py` — stock, demand, delivery-delay, weather-factor, and shortage simulation.
+- `psrs/services/plan_evaluation.py` — hard-capacity and route-feasibility checks with explainable scores.
+
+Generate data before using the forecast and inventory API endpoints:
+
+```powershell
+python scripts/generate_synthetic_data.py
+python app.py
+```
+
+The dashboard is available at `http://127.0.0.1:5000/`. API routes include `/api/summary`, `/api/forecast`, and `/api/inventory`. All generated values and routes are fictional and must not be interpreted as operational information.
+
 ## Project structure
 
 ```text
@@ -132,7 +151,9 @@ The application package is named `psrs` so the root-level `app.py` entry point d
 
 - [x] Phase 1 repository and CI foundation merged
 - [x] Phase 2 reproducible synthetic data generator implemented on its feature branch
-- [ ] Phase 2 CI verification and review
-- [ ] Inventory reconciliation
-- [ ] Demand forecasting
-- [ ] Scenario simulation and planning
+- [x] Phase 2 CI verification and review
+- [x] Inventory reconciliation MVP
+- [x] Demand forecasting MVP
+- [x] Fictional GIS routing MVP
+- [x] Scenario simulation and plan evaluation MVP
+- [ ] Comparative A/B/C experiments and final evaluation report
