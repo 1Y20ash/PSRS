@@ -116,11 +116,13 @@
         if (nextPick === "origin") {
           origin.value = node.id;
           origin.dataset.nextPick = "destination";
+          $("#route-result").className = "route-result";
+          $("#route-result").innerHTML = "<strong>Starting point selected</strong><span>Now click a destination on the map, or choose one below.</span>";
         } else {
           destination.value = node.id;
           origin.dataset.nextPick = "origin";
+          loadRoute();
         }
-        loadRoute();
       });
       nodeLayers.set(node.id, marker);
     });
@@ -193,18 +195,79 @@
   async function loadRoute() {
     const form = $("#route-form");
     const resultElement = $("#route-result");
+    const button = $("#check-route");
+    const origin = $("#origin").value;
+    const destination = $("#destination").value;
+    const weatherFactor = Number($("#weather-factor").value);
+
+    if (!origin || !destination) {
+      resultElement.className = "route-result error";
+      resultElement.innerHTML = "<strong>Choose both locations</strong><span>Select a starting point and destination before checking the route.</span>";
+      updateMapRoute([]);
+      return;
+    }
+    if (origin === destination) {
+      resultElement.className = "route-result error";
+      resultElement.innerHTML = "<strong>Pick two different locations</strong><span>The starting point and destination cannot be the same.</span>";
+      updateMapRoute([]);
+      return;
+    }
+    if (!Number.isFinite(weatherFactor) || weatherFactor < 1 || weatherFactor > 10) {
+      resultElement.className = "route-result error";
+      resultElement.innerHTML = "<strong>Check the weather impact</strong><span>Enter a number from 1 to 10. Use 1 for normal conditions.</span>";
+      updateMapRoute([]);
+      return;
+    }
+
+    const originalButtonText = button ? button.innerHTML : "";
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="button-spinner" aria-hidden="true"></span> Checking route…';
+    }
+    resultElement.className = "route-result loading";
+    resultElement.innerHTML = "<strong>Checking your route…</strong><span>Looking for a connected path and estimating travel time.</span>";
     try {
       const params = new URLSearchParams(new FormData(form));
       const result = await getJson(`/api/route?${params.toString()}`);
-      resultElement.className = `route-result ${result.feasible ? "success" : "error"}`;
-      resultElement.textContent = result.feasible
-        ? `Feasible route: ${result.nodes.join(" → ")} · ${result.distance} synthetic distance units · ${result.travel_time} estimated travel-time units.`
-        : `No feasible route: ${result.reason}. Choose another destination in the fictional network.`;
-      updateMapRoute(result.feasible ? result.nodes : []);
+      if (result.feasible && Array.isArray(result.nodes) && result.nodes.length) {
+        const readableNodes = result.nodes.map((id) => {
+          const node = networkNodes.find((item) => item.id === id);
+          return node ? node.name : id;
+        });
+        resultElement.className = "route-result success";
+        resultElement.innerHTML = "";
+        const heading = document.createElement("strong");
+        heading.textContent = "A route is available";
+        const details = document.createElement("span");
+        details.textContent = readableNodes.join(" → ");
+        const metrics = document.createElement("span");
+        metrics.textContent = `Sample distance: ${result.distance} units · Estimated travel time: ${result.travel_time} time units.`;
+        resultElement.append(heading, details, metrics);
+        updateMapRoute(result.nodes);
+      } else {
+        resultElement.className = "route-result error";
+        resultElement.innerHTML = "";
+        const heading = document.createElement("strong");
+        heading.textContent = "No route found";
+        const details = document.createElement("span");
+        details.textContent = `${result.reason || "These locations are not connected in the sample network."} Try a different destination.`;
+        resultElement.append(heading, details);
+        updateMapRoute([]);
+      }
     } catch (error) {
       resultElement.className = "route-result error";
-      resultElement.textContent = error.message;
+      resultElement.innerHTML = "";
+      const heading = document.createElement("strong");
+      heading.textContent = "Could not check this route";
+      const details = document.createElement("span");
+      details.textContent = `${error.message || "The route service did not respond."} Check that the app is running and try again.`;
+      resultElement.append(heading, details);
       updateMapRoute([]);
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = originalButtonText;
+      }
     }
   }
 
@@ -281,5 +344,10 @@
   });
   initNetworkMap();
   loadDashboard();
-  $("#route-form").addEventListener("change", loadRoute);
+  $("#route-form").addEventListener("change", () => {
+    const resultElement = $("#route-result");
+    resultElement.className = "route-result";
+    resultElement.innerHTML = "<strong>Route settings changed</strong><span>Press “Check route” to update the route and its travel-time estimate.</span>";
+    updateMapRoute([]);
+  });
 })();

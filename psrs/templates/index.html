@@ -16,14 +16,14 @@
         <div class="brand-mark" aria-hidden="true">P</div>
         <div>
           <strong>PSRS</strong>
-          <span>Decision console</span>
+          <span>Supply planning</span>
         </div>
       </div>
       <nav class="nav-list">
-        <a class="nav-item active" href="#overview"><span aria-hidden="true">⌂</span> Overview</a>
-        <a class="nav-item" href="#forecasting"><span aria-hidden="true">↗</span> Forecasting</a>
-        <a class="nav-item" href="#inventory"><span aria-hidden="true">▤</span> Inventory</a>
-        <a class="nav-item" href="#network"><span aria-hidden="true">⌁</span> Network</a>
+        <a class="nav-item active" href="#overview"><span aria-hidden="true">⌂</span> Dashboard</a>
+        <a class="nav-item" href="#forecasting"><span aria-hidden="true">↗</span> Demand forecast</a>
+        <a class="nav-item" href="#inventory"><span aria-hidden="true">▤</span> Stock levels</a>
+        <a class="nav-item" href="#network"><span aria-hidden="true">⌁</span> Supply routes</a>
       </nav>
       <div class="sidebar-note">
         <span class="status-dot" aria-hidden="true"></span>
@@ -38,10 +38,10 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Predictive Supply Resilience System</p>
-          <h1>Operations overview</h1>
+          <h1>Your supply dashboard</h1>
         </div>
         <div class="topbar-actions">
-          <span class="environment-badge"><span class="status-dot" aria-hidden="true"></span> Local / safe mode</span>
+          <span class="environment-badge"><span class="status-dot" aria-hidden="true"></span> Demo mode · Sample data</span>
           <a class="icon-button" href="/health" aria-label="Check application health" title="Check application health">↗</a>
         </div>
       </header>
@@ -54,8 +54,8 @@
       <section class="welcome-card" aria-labelledby="welcome-title">
         <div class="welcome-copy">
           <p class="eyebrow">Start here</p>
-          <h2 id="welcome-title">Learn how PSRS makes a safer supply decision</h2>
-          <p>PSRS combines demand, stock records, routes, and “what if” scenarios. Follow the path below to understand the project one step at a time.</p>
+          <h2 id="welcome-title">Make sense of supply plans, one step at a time</h2>
+          <p>Explore how much may be needed, what stock is available, and which sample route could work. Every value is made up for this demo.</p>
         </div>
         <div class="welcome-step"><span>1</span><strong>Understand</strong><small>Read the signals</small></div>
         <div class="welcome-step"><span>2</span><strong>Explore</strong><small>Try a forecast</small></div>
@@ -64,22 +64,22 @@
 
       <section id="overview" class="metric-grid" aria-label="Dataset overview">
         <article class="metric-card accent-blue">
-          <div class="metric-label"><span class="metric-icon" aria-hidden="true">◈</span> Dataset status</div>
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">◈</span> Sample data</div>
           <div class="metric-value" id="dataset">—</div>
           <div class="metric-meta" id="dataset-meta">Checking local files…</div>
         </article>
         <article class="metric-card accent-teal">
-          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌁</span> Demand observations</div>
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌁</span> Demand records</div>
           <div class="metric-value" id="demand-rows">—</div>
-          <div class="metric-meta">Historical rows available to models</div>
+          <div class="metric-meta">Past sample records used for estimates</div>
         </article>
         <article class="metric-card accent-amber">
-          <div class="metric-label"><span class="metric-icon" aria-hidden="true">▤</span> Inventory events</div>
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">▤</span> Stock updates</div>
           <div class="metric-value" id="inventory-events">—</div>
-          <div class="metric-meta">Opening, issue & receipt records</div>
+          <div class="metric-meta">Starting stock, items sent out, and items received</div>
         </article>
         <article class="metric-card accent-purple">
-          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌖</span> Network dimensions</div>
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌖</span> Locations / item types</div>
           <div class="metric-value" id="dimensions">—</div>
           <div class="metric-meta">Fictional locations / item types</div>
         </article>
@@ -89,18 +89,18 @@
         <article id="forecasting" class="panel forecast-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Demand intelligence</p>
-              <h2>Forecast signal</h2>
+              <p class="eyebrow">What might be needed?</p>
+              <h2>Demand forecast</h2>
             </div>
-            <span class="panel-tag">7-day horizon</span>
+            <span class="panel-tag">Next 7 days</span>
           </div>
           <div class="learning-tip">
             <span class="tip-icon" aria-hidden="true">?</span>
-            <div><strong>What is a forecast?</strong><span>It is an estimate of future demand based on past observations. It is not a guarantee.</span></div>
+            <div><strong>What is a forecast?</strong><span>A best estimate of what people may need, based on past records. It can be wrong.</span></div>
           </div>
           <form id="forecast-form" class="forecast-controls">
             <div class="field">
-              <label for="location-id">Location</label>
+              <label for="location-id">Choose a location</label>
               <select id="location-id" name="location_id">
                 <option value="LOC-01">LOC-01 · Hub A</option>
                 <option value="LOC-02">LOC-02 · Point B</option>
@@ -111,7 +111,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="item-id">Item</label>
+              <label for="item-id">Choose a supply item</label>
               <select id="item-id" name="item_id">
                 <option value="ITEM-001">ITEM-001 · Food</option>
                 <option value="ITEM-002">ITEM-002 · Water</option>
@@ -123,15 +123,15 @@
                 <option value="ITEM-008">ITEM-008 · Hygiene</option>
               </select>
             </div>
-            <button class="primary-button" type="submit">Run forecast <span aria-hidden="true">→</span></button>
+            <button class="primary-button" type="submit">Show forecast <span aria-hidden="true">→</span></button>
           </form>
           <div class="forecast-summary">
             <div>
-              <span class="muted-label">Selected model</span>
+              <span class="muted-label">Method used</span>
               <strong id="forecast-model">Waiting for data</strong>
             </div>
             <div>
-              <span class="muted-label">Validation MAE</span>
+              <span class="muted-label">Average forecast error</span>
               <strong id="forecast-mae">—</strong>
             </div>
           </div>
@@ -157,19 +157,19 @@
         <article id="inventory" class="panel inventory-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Stock position</p>
-              <h2>Inventory health</h2>
+              <p class="eyebrow">What is available?</p>
+              <h2>Stock levels</h2>
             </div>
             <a class="text-link" href="/api/inventory">View API <span aria-hidden="true">↗</span></a>
           </div>
           <div class="learning-tip teal-tip">
             <span class="tip-icon" aria-hidden="true">?</span>
-            <div><strong>Why does stock have uncertainty?</strong><span>Duplicate or incomplete records can make the true stock different from the recorded stock.</span></div>
+            <div><strong>Why might stock estimates be uncertain?</strong><span>Some sample records may be missing or repeated, so the real amount may be different.</span></div>
           </div>
           <div class="inventory-highlight">
             <div class="ring-chart" aria-hidden="true"><span id="inventory-coverage">—</span></div>
             <div>
-              <span class="muted-label">Estimated stock coverage</span>
+              <span class="muted-label">Records that look consistent</span>
               <strong id="inventory-status">Waiting for data</strong>
               <p id="inventory-caption">Reconciled from timestamped synthetic events.</p>
             </div>
@@ -184,26 +184,26 @@
         <article id="network" class="panel network-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Fictional network</p>
-              <h2>Route readiness</h2>
+              <p class="eyebrow">Explore sample routes</p>
+              <h2>Find a supply route</h2>
             </div>
-            <span class="panel-tag neutral">GeoJSON / NetworkX</span>
+            <span class="panel-tag neutral">Sample network</span>
           </div>
           <div class="map-toolbar" aria-label="Map controls">
             <div class="map-key">
-              <span><i class="legend-dot connected"></i> Road connection</span>
-              <span><i class="legend-dot route-key"></i> Selected route</span>
-              <span><i class="legend-dot fictional"></i> Synthetic location</span>
+              <span><i class="legend-dot connected"></i> Available connection</span>
+              <span><i class="legend-dot route-key"></i> Route you checked</span>
+              <span><i class="legend-dot fictional"></i> Sample location</span>
             </div>
-            <button id="fit-network" class="quiet-button" type="button">Fit network</button>
+            <button id="fit-network" class="quiet-button" type="button">Show all locations</button>
           </div>
           <div id="route-map" class="route-map" role="application" aria-label="Interactive fictional supply network map">
-            <p class="map-fallback">Interactive map is loading. Route choices remain available below.</p>
+            <p class="map-fallback">Loading sample locations… You can also choose locations below the map.</p>
           </div>
-          <div class="map-caption"><span>SCHEMATIC NETWORK</span><span>Fictional coordinates · Not for navigation</span></div>
+          <div class="map-caption"><span>SAMPLE NETWORK</span><span>Made-up locations · Not a real map</span></div>
           <form id="route-form" class="route-controls">
             <div class="field">
-              <label for="origin">From</label>
+              <label for="origin">Starting point</label>
               <select id="origin" name="origin">
                 <option value="LOC-01">LOC-01 · Hub A</option>
                 <option value="LOC-02">LOC-02 · Point B</option>
@@ -214,7 +214,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="destination">To</label>
+              <label for="destination">Destination</label>
               <select id="destination" name="destination">
                 <option value="LOC-04">LOC-04 · Point D</option>
                 <option value="LOC-02">LOC-02 · Point B</option>
@@ -225,37 +225,37 @@
               </select>
             </div>
             <div class="field compact-field">
-              <label for="weather-factor">Weather factor</label>
-              <input id="weather-factor" name="weather_factor" type="number" min="1" max="10" step=".1" value="1" inputmode="decimal">
+              <label for="weather-factor">Weather impact (1 = none)</label>
+              <input id="weather-factor" name="weather_factor" type="number" min="1" max="10" step=".1" value="1" inputmode="decimal" aria-describedby="weather-help"><small id="weather-help" class="field-help">Use 1 for normal conditions; higher values mean a bigger delay.</small>
             </div>
-            <button class="secondary-button" type="submit">Check route</button>
+            <button id="check-route" class="secondary-button" type="submit">Check route <span aria-hidden="true">→</span></button>
           </form>
-          <p id="route-result" class="route-result" role="status" aria-live="polite">Choose two locations to check route feasibility.</p>
+          <div id="route-result" class="route-result" role="status" aria-live="polite"><strong>Ready when you are</strong><span>Choose a starting point and destination, then press “Check route”.</span></div>
           <div class="network-footer">
-            <span><i class="legend-dot connected"></i> Connected route graph</span>
-            <span><i class="legend-dot fictional"></i> Fictional coordinates</span>
+            <span><i class="legend-dot connected"></i> Connected paths</span>
+            <span><i class="legend-dot fictional"></i> Demo locations only</span>
           </div>
         </article>
         <article class="panel readiness-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Decision support</p>
-              <h2>Run a planning scenario</h2>
+              <p class="eyebrow">Try a what-if plan</p>
+              <h2>Test a supply plan</h2>
             </div>
           </div>
           <div class="learning-tip planning-tip">
             <span class="tip-icon" aria-hidden="true">?</span>
-            <div><strong>What will happen?</strong><span>PSRS combines your forecast, reconciled stock, route, delivery capacity, and two synthetic conditions.</span></div>
+            <div><strong>What does this test do?</strong><span>It compares a normal day with a tougher sample situation, using your chosen route and vehicle capacity.</span></div>
           </div>
           <form id="planning-form" class="planning-form">
             <div class="field">
-              <label for="capacity-limit">Shared vehicle capacity</label>
+              <label for="capacity-limit">How many units can the vehicle carry?</label>
               <input id="capacity-limit" name="capacity_limit" type="number" min="1" max="10000" value="100" inputmode="numeric">
             </div>
-            <button class="primary-button" type="submit">Run scenario <span aria-hidden="true">→</span></button>
+            <button class="primary-button" type="submit">Test this plan <span aria-hidden="true">→</span></button>
           </form>
           <div id="planning-result" class="planning-result" role="status" aria-live="polite">
-            <span class="result-placeholder">Your scenario result will appear here.</span>
+            <span class="result-placeholder">Your plan results will appear here after you run the test.</span>
           </div>
           <a class="text-link result-api-link" href="/api/planning">Open planning API <span aria-hidden="true">↗</span></a>
         </article>
@@ -264,27 +264,27 @@
       <section class="learning-section" aria-labelledby="learning-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Project guide</p>
-            <h2 id="learning-title">The PSRS decision loop</h2>
+            <p class="eyebrow">How it works</p>
+            <h2 id="learning-title">How PSRS makes an estimate</h2>
           </div>
-          <span class="muted-label">A beginner-friendly map of the system</span>
+          <span class="muted-label">Four simple steps</span>
         </div>
         <div class="loop-grid">
           <article class="loop-card">
             <div class="loop-number blue">01</div>
-            <div><h3>Observe</h3><p>Start with synthetic demand and inventory events. These are the records the system can see.</p><span class="loop-code">demand_history.csv</span></div>
+            <div><h3>Read the records</h3><p>Start with sample records showing what was needed and what arrived or was sent out.</p><span class="loop-code">demand_history.csv</span></div>
           </article>
           <article class="loop-card">
             <div class="loop-number teal">02</div>
-            <div><h3>Reconcile</h3><p>Check whether events agree and estimate stock without hiding duplicate or invalid records.</p><span class="loop-code">inventory_reconciliation</span></div>
+            <div><h3>Check the stock</h3><p>Compare stock updates and flag records that look missing, repeated, or unclear.</p><span class="loop-code">inventory_reconciliation</span></div>
           </article>
           <article class="loop-card">
             <div class="loop-number purple">03</div>
-            <div><h3>Predict</h3><p>Compare a simple baseline with a machine-learning forecast and inspect the error.</p><span class="loop-code">demand_forecasting</span></div>
+            <div><h3>Estimate demand</h3><p>Use past sample records to estimate what may be needed in the coming days.</p><span class="loop-code">demand_forecasting</span></div>
           </article>
           <article class="loop-card">
             <div class="loop-number amber">04</div>
-            <div><h3>Plan safely</h3><p>Test routes, delays, weather assumptions, and vehicle capacity before accepting a plan.</p><span class="loop-code">simulation + constraints</span></div>
+            <div><h3>Test a plan</h3><p>Try a route and vehicle limit, then see how the plan behaves in different sample conditions.</p><span class="loop-code">simulation + constraints</span></div>
           </article>
         </div>
       </section>
@@ -292,21 +292,21 @@
       <section class="glossary-section" aria-labelledby="glossary-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Quick glossary</p>
-            <h2 id="glossary-title">Words you will see in PSRS</h2>
+            <p class="eyebrow">Plain-English guide</p>
+            <h2 id="glossary-title">A few useful words</h2>
           </div>
         </div>
         <div class="glossary-grid">
-          <details><summary>MAE <span aria-hidden="true">+</span></summary><p>Mean Absolute Error: the average size of forecast mistakes. Lower is generally better.</p></details>
-          <details><summary>Reconciliation <span aria-hidden="true">+</span></summary><p>Rebuilding an estimated stock position from opening balances, receipts, and issues.</p></details>
-          <details><summary>Feasible route <span aria-hidden="true">+</span></summary><p>A route that exists in the fictional road graph. PSRS flags destinations it cannot reach.</p></details>
-          <details><summary>Ground truth <span aria-hidden="true">+</span></summary><p>Hidden future values used only after a forecast is produced to measure performance fairly.</p></details>
+          <details><summary>Forecast error <span aria-hidden="true">+</span></summary><p>How far the estimate was from the actual sample value. A smaller error usually means a better estimate.</p></details>
+          <details><summary>Stock check <span aria-hidden="true">+</span></summary><p>Estimating current stock from starting amounts, received items, and items sent out.</p></details>
+          <details><summary>Possible route <span aria-hidden="true">+</span></summary><p>A path that connects the chosen starting point to the destination in this sample network.</p></details>
+          <details><summary>Sample data <span aria-hidden="true">+</span></summary><p>Made-up records used to demonstrate the project. They do not describe real locations or real supply needs.</p></details>
         </div>
       </section>
 
       <footer class="page-footer">
-        <span>PSRS research prototype</span>
-        <span>All values are synthetic and fictional · Human review required</span>
+        <span>PSRS learning prototype</span>
+        <span>Sample data only · Always review results yourself</span>
       </footer>
     </main>
   </div>
