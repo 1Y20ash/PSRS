@@ -56,6 +56,100 @@
     $("#inventory-events").title = `Total estimated stock: ${formatNumber(total)} units`;
   }
 
+
+  // The map is deliberately schematic: coordinates and edges mirror the
+  // committed fictional GeoJSON network, not real-world geography.
+  const networkNodes = [
+    { id: "LOC-01", name: "Hub A", x: 0, y: 0 },
+    { id: "LOC-02", name: "Point B", x: 4, y: 2 },
+    { id: "LOC-03", name: "Point C", x: 2, y: 6 },
+    { id: "LOC-04", name: "Point D", x: 8, y: 3 },
+    { id: "LOC-05", name: "Point E", x: 7, y: 8 },
+    { id: "LOC-06", name: "Point F", x: 11, y: 6 },
+  ];
+  const networkEdges = [
+    ["LOC-01", "LOC-02"], ["LOC-01", "LOC-03"], ["LOC-02", "LOC-04"],
+    ["LOC-03", "LOC-05"], ["LOC-04", "LOC-05"], ["LOC-05", "LOC-06"],
+  ];
+  let networkMap = null;
+  let edgeLayers = [];
+  let nodeLayers = new Map();
+
+  function initNetworkMap() {
+    const mapElement = $("#route-map");
+    if (!mapElement || !window.L) {
+      if (mapElement) mapElement.innerHTML = '<p class="map-fallback">Map library unavailable. Use the route selectors below to calculate a route.</p>';
+      return;
+    }
+    networkMap = L.map(mapElement, {
+      crs: L.CRS.Simple,
+      minZoom: -1.5,
+      maxZoom: 2,
+      zoomControl: true,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    });
+    const bounds = [[-1, -1], [9, 12]];
+    L.rectangle(bounds, { color: "#dce5ee", weight: 1, fillColor: "#f7f9fc", fillOpacity: .2, interactive: false }).addTo(networkMap);
+    // Light grid is visual scaffolding only; it does not imply real roads.
+    for (let y = 0; y <= 8; y += 2) {
+      L.polyline([[y, -0.5], [y, 11.5]], { color: "#e5ebf2", weight: 1, interactive: false }).addTo(networkMap);
+    }
+    for (let x = 0; x <= 10; x += 2) {
+      L.polyline([[-0.5, x], [8.5, x]], { color: "#e5ebf2", weight: 1, interactive: false }).addTo(networkMap);
+    }
+    networkEdges.forEach(([from, to]) => {
+      const a = networkNodes.find((node) => node.id === from);
+      const b = networkNodes.find((node) => node.id === to);
+      const layer = L.polyline([[a.y, a.x], [b.y, b.x]], { color: "#9aabba", weight: 3, opacity: .9, lineCap: "round" }).addTo(networkMap);
+      layer.bindTooltip(`${from} ↔ ${to}`, { className: "psrs-label", direction: "center", sticky: true });
+      edgeLayers.push({ from, to, layer });
+    });
+    networkNodes.forEach((node) => {
+      const icon = L.divIcon({ className: "", html: `<span class="psrs-node-icon" aria-hidden="true">${node.id.slice(-2)}</span>`, iconSize: [31, 31], iconAnchor: [15, 15] });
+      const marker = L.marker([node.y, node.x], { icon, title: `${node.id} · ${node.name}`, alt: `${node.id}, ${node.name}` }).addTo(networkMap);
+      marker.bindTooltip(`${node.id} · ${node.name}`, { className: "psrs-label", direction: "top", offset: [0, -12] });
+      marker.on("click", () => {
+        const origin = $("#origin");
+        const destination = $("#destination");
+        if (origin.value === destination.value || origin.dataset.nextPick === "origin") {
+          origin.value = node.id;
+          origin.dataset.nextPick = "destination";
+        } else {
+          destination.value = node.id;
+          origin.dataset.nextPick = "origin";
+        }
+        loadRoute();
+      });
+      nodeLayers.set(node.id, marker);
+    });
+    networkMap.fitBounds(bounds, { padding: [12, 12] });
+    $("#fit-network")?.addEventListener("click", () => networkMap.fitBounds(bounds, { padding: [12, 12] }));
+  }
+
+  function updateMapRoute(routeNodes) {
+    if (!networkMap) return;
+    const selected = new Set();
+    for (let index = 0; index < routeNodes.length - 1; index += 1) {
+      selected.add([routeNodes[index], routeNodes[index + 1]].sort().join("|"));
+    }
+    edgeLayers.forEach(({ from, to, layer }) => {
+      const isSelected = selected.has([from, to].sort().join("|"));
+      layer.setStyle({ color: isSelected ? "#245ea8" : "#9aabba", weight: isSelected ? 5 : 3, opacity: isSelected ? 1 : .78 });
+      if (isSelected) layer.bringToFront();
+    });
+    networkNodes.forEach((node) => {
+      const element = nodeLayers.get(node.id)?.getElement()?.querySelector(".psrs-node-icon");
+      if (!element) return;
+      element.classList.toggle("is-origin", routeNodes[0] === node.id);
+      element.classList.toggle("is-destination", routeNodes.at(-1) === node.id && routeNodes.length > 1);
+    });
+    if (routeNodes.length) {
+      const points = routeNodes.map((id) => networkNodes.find((node) => node.id === id)).filter(Boolean).map((node) => [node.y, node.x]);
+      if (points.length) networkMap.fitBounds(L.latLngBounds(points), { padding: [42, 42], maxZoom: 0.5 });
+    }
+  }
+
   async function getJson(url) {
     const response = await fetch(url);
     const payload = await response.json();
@@ -105,9 +199,11 @@
       resultElement.textContent = result.feasible
         ? `Feasible route: ${result.nodes.join(" → ")} · ${result.distance} synthetic distance units · ${result.travel_time} estimated travel-time units.`
         : `No feasible route: ${result.reason}. Choose another destination in the fictional network.`;
+      updateMapRoute(result.feasible ? result.nodes : []);
     } catch (error) {
       resultElement.className = "route-result error";
       resultElement.textContent = error.message;
+      updateMapRoute([]);
     }
   }
 
@@ -182,6 +278,7 @@
     event.preventDefault();
     loadPlanning();
   });
+  initNetworkMap();
   loadDashboard();
   $("#route-form").addEventListener("change", loadRoute);
 })();
