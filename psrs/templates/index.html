@@ -1,109 +1,329 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1324">
   <title>{{ project_name }} | Predictive Supply Resilience System</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <style>
-    :root{color-scheme:light;--ink:#172033;--muted:#526174;--line:#d9e0ea;--panel:#f8fafc;--blue:#1d4ed8}
-    body{font-family:system-ui,sans-serif;margin:2rem auto;max-width:76rem;padding:0 1rem;color:var(--ink)}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1rem}
-    .card{border:1px solid var(--line);border-radius:.6rem;padding:1rem;background:var(--panel)}
-    .value{font-size:1.7rem;font-weight:700;overflow-wrap:anywhere}.muted{color:var(--muted)}
-    table{border-collapse:collapse;width:100%;margin-top:1rem}th,td{border-bottom:1px solid var(--line);padding:.6rem;text-align:left}
-    code{background:#eef2f7;padding:.1rem .25rem}#map{height:390px;border:1px solid var(--line);border-radius:.6rem;margin:1rem 0}
-    .controls{display:flex;flex-wrap:wrap;gap:.7rem;align-items:end;margin-top:1rem}
-    label{display:grid;gap:.25rem;font-size:.9rem}select,input,button{font:inherit;padding:.55rem;border:1px solid #aab6c5;border-radius:.4rem}
-    button{cursor:pointer;background:var(--blue);color:white;border-color:var(--blue)}
-    @media(max-width:600px){body{margin:1rem auto}#map{height:300px}}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
-<body><main>
-  <h1>{{ project_name }}</h1>
-  <p class="muted">Synthetic-only, uncertainty-aware logistics decision support. All locations and conditions are fictional.</p>
-  <p id="notice" role="status">Generate data with <code>python scripts/generate_synthetic_data.py</code> to populate the dashboard.</p>
-  <section class="grid" aria-label="Dataset summary">
-    <div class="card"><div class="muted">Dataset</div><div class="value" id="dataset">—</div></div>
-    <div class="card"><div class="muted">Demand rows</div><div class="value" id="demand-rows">—</div></div>
-    <div class="card"><div class="muted">Inventory events</div><div class="value" id="inventory-events">—</div></div>
-    <div class="card"><div class="muted">Locations / items</div><div class="value" id="dimensions">—</div></div>
-  </section>
-  <section><h2>Demand forecast</h2>
-    <div class="controls">
-      <label>Location <select id="location"><option>LOC-01</option><option>LOC-02</option><option>LOC-03</option><option>LOC-04</option><option>LOC-05</option><option>LOC-06</option></select></label>
-      <label>Item <select id="item"><option>ITEM-001</option><option>ITEM-002</option><option>ITEM-003</option><option>ITEM-004</option><option>ITEM-005</option><option>ITEM-006</option><option>ITEM-007</option><option>ITEM-008</option></select></label>
-      <label>Forecast days <input id="horizon" type="number" min="1" max="90" value="7"></label><button id="forecast-button" type="button">Run forecast</button>
-    </div>
-    <table><thead><tr><th>Model</th><th>Location</th><th>Item</th><th>Predictions</th><th>Baseline MAE</th><th>ML MAE</th><th>WAPE (baseline / ML)</th></tr></thead>
-    <tbody id="forecast"><tr><td colspan="7">Loading…</td></tr></tbody></table>
-  </section>
-  <section><h2>Fictional road network</h2>
-    <p class="muted">This is a fictional grid, not a real-world map. Route distance uses synthetic edge weights; travel time is an assumption.</p>
-    <div class="controls">
-      <label>Origin <select id="origin"><option>LOC-01</option><option>LOC-02</option><option>LOC-03</option><option>LOC-04</option><option>LOC-05</option><option>LOC-06</option></select></label>
-      <label>Destination <select id="destination"><option>LOC-04</option><option>LOC-02</option><option>LOC-03</option><option>LOC-05</option><option>LOC-06</option><option>LOC-01</option></select></label>
-      <label>Weather delay factor <input id="weather" type="number" min="1" max="10" step=".1" value="1"></label><button id="route-button" type="button">Calculate route</button>
-    </div>
-    <div id="map" aria-label="Map of fictional logistics locations"></div><p id="route-result" role="status" class="muted">Route not calculated yet.</p>
-  </section>
-  <section><h2>Integrated planning scenario</h2>
-    <p class="muted">Runs the local forecast, reconciled stock estimate, route feasibility, transport-capacity check, and nominal/adverse synthetic simulations. Review all assumptions before interpreting recommendations.</p>
-    <button id="planning-button" type="button">Run integrated planning</button>
-    <pre id="planning-result" class="card" aria-live="polite" style="white-space:pre-wrap;overflow-wrap:anywhere">Planning has not been run.</pre>
-  </section>
-  <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a> · <a href="/api/route">Route API</a></p>
-</main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-(function(){
-  var $=function(s){return document.querySelector(s)}, map=null, routeLayer=null;
-  var locations={"LOC-01":[0,0],"LOC-02":[4,2],"LOC-03":[2,6],"LOC-04":[8,3],"LOC-05":[7,8],"LOC-06":[11,6]};
-  var edges=[["LOC-01","LOC-02"],["LOC-01","LOC-03"],["LOC-02","LOC-04"],["LOC-03","LOC-05"],["LOC-04","LOC-05"],["LOC-05","LOC-06"]];
-  function initMap(){
-    if(!window.L){$("#route-result").textContent="Map library unavailable; route API remains available.";return}
-    map=L.map("map",{crs:L.CRS.Simple}).setView([4,5],0);
-    map.fitBounds([[0,0],[11,11]]);
-    Object.keys(locations).forEach(function(id){var xy=locations[id];L.marker([xy[1],xy[0]]).addTo(map).bindPopup(id+" (fictional)")});
-    edges.forEach(function(e){var a=locations[e[0]],b=locations[e[1]];L.polyline([[a[1],a[0]],[b[1],b[0]]],{color:"#94a3b8"}).addTo(map)});
-  }
-  async function loadSummary(){
-    var response=await fetch("/api/summary"),s=await response.json();
-    $("#dataset").textContent=s.dataset_available?"Ready":"Missing";
-    $("#demand-rows").textContent=s.demand_rows;$("#inventory-events").textContent=s.inventory_events;
-    $("#dimensions").textContent=s.locations+" / "+s.items;
-    if(!s.dataset_available)$("#notice").textContent="Generate the synthetic dataset to enable forecasting and reconciliation.";
-  }
-  async function runForecast(){
-    var p=new URLSearchParams({location_id:$("#location").value,item_id:$("#item").value,horizon:$("#horizon").value});
-    var response=await fetch("/api/forecast?"+p),r=await response.json();
-    if(!response.ok)throw new Error(r.error||"Forecast unavailable");
-    var vals=[r.model,r.location_id,r.item_id,r.predictions.join(", "),r.baseline_mae==null?"n/a":r.baseline_mae,
-      r.ml_mae==null?"n/a":r.ml_mae,(r.baseline_wape==null?"n/a":r.baseline_wape)+" / "+(r.ml_wape==null?"n/a":r.ml_wape)];
-    var row=document.createElement("tr");
-    vals.forEach(function(v){var cell=document.createElement("td");cell.textContent=String(v);row.appendChild(cell)});
-    $("#forecast").replaceChildren(row);
-  }
-  async function runRoute(){
-    var p=new URLSearchParams({origin:$("#origin").value,destination:$("#destination").value,weather_factor:$("#weather").value});
-    var response=await fetch("/api/route?"+p),r=await response.json();
-    if(!response.ok)throw new Error(r.error||"Route unavailable");
-    $("#route-result").textContent=r.feasible?"Feasible route: "+r.nodes.join(" → ")+" | distance "+r.distance+" synthetic units | estimated travel time "+r.travel_time+" synthetic units":"No feasible route: "+r.reason;
-    if(map&&routeLayer)map.removeLayer(routeLayer);
-    if(map&&r.feasible){routeLayer=L.polyline(r.nodes.map(function(id){return [locations[id][1],locations[id][0]]}),{color:"#1d4ed8",weight:5}).addTo(map);map.fitBounds(routeLayer.getBounds(),{padding:[20,20]})}
-  }
-  $("#forecast-button").addEventListener("click",function(){runForecast().catch(function(e){$("#notice").textContent=e.message})});
-  $("#route-button").addEventListener("click",function(){runRoute().catch(function(e){$("#route-result").textContent=e.message})});
-  $("#planning-button").addEventListener("click",async function(){
-    try{
-      $("#planning-result").textContent="Calculating scenarios…";
-      var p=new URLSearchParams({location_id:$("#location").value,item_id:$("#item").value,
-        horizon:$("#horizon").value,origin:$("#origin").value,destination:$("#destination").value,capacity_limit:"100"});
-      var response=await fetch("/api/planning?"+p),result=await response.json();
-      if(!response.ok)throw new Error(result.error||"Planning unavailable");
-      $("#planning-result").textContent=JSON.stringify(result,null,2);
-    }catch(e){$("#planning-result").textContent=e.message}
-  });
-  initMap();loadSummary().then(runForecast).catch(function(e){$("#notice").textContent=e.message});
-  runRoute().catch(function(e){$("#route-result").textContent=e.message});
-})();
-</script></body></html>
+<body>
+  <a class="skip-link" href="#main-content">Skip to dashboard</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <div>
+          <strong>PSRS</strong>
+          <span>Decision console</span>
+        </div>
+      </div>
+      <nav class="nav-list">
+        <a class="nav-item active" href="#overview"><span aria-hidden="true">⌂</span> Overview</a>
+        <a class="nav-item" href="#forecasting"><span aria-hidden="true">↗</span> Forecasting</a>
+        <a class="nav-item" href="#inventory"><span aria-hidden="true">▤</span> Inventory</a>
+        <a class="nav-item" href="#network"><span aria-hidden="true">⌁</span> Network</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div>
+          <strong>Local workspace</strong>
+          <span>Synthetic data only</span>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main-content" class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Predictive Supply Resilience System</p>
+          <h1>Operations overview</h1>
+        </div>
+        <div class="topbar-actions">
+          <span class="environment-badge"><span class="status-dot" aria-hidden="true"></span> Local / safe mode</span>
+          <a class="icon-button" href="/health" aria-label="Check application health" title="Check application health">↗</a>
+        </div>
+      </header>
+
+      <div id="notice" class="notice" role="status" aria-live="polite">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <span>Loading your learning workspace…</span>
+      </div>
+
+      <section class="welcome-card" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow">Start here</p>
+          <h2 id="welcome-title">Learn how PSRS makes a safer supply decision</h2>
+          <p>PSRS combines demand, stock records, routes, and “what if” scenarios. Follow the path below to understand the project one step at a time.</p>
+        </div>
+        <div class="welcome-step"><span>1</span><strong>Understand</strong><small>Read the signals</small></div>
+        <div class="welcome-step"><span>2</span><strong>Explore</strong><small>Try a forecast</small></div>
+        <div class="welcome-step"><span>3</span><strong>Decide</strong><small>Review constraints</small></div>
+      </section>
+
+      <section id="overview" class="metric-grid" aria-label="Dataset overview">
+        <article class="metric-card accent-blue">
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">◈</span> Dataset status</div>
+          <div class="metric-value" id="dataset">—</div>
+          <div class="metric-meta" id="dataset-meta">Checking local files…</div>
+        </article>
+        <article class="metric-card accent-teal">
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌁</span> Demand observations</div>
+          <div class="metric-value" id="demand-rows">—</div>
+          <div class="metric-meta">Historical rows available to models</div>
+        </article>
+        <article class="metric-card accent-amber">
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">▤</span> Inventory events</div>
+          <div class="metric-value" id="inventory-events">—</div>
+          <div class="metric-meta">Opening, issue & receipt records</div>
+        </article>
+        <article class="metric-card accent-purple">
+          <div class="metric-label"><span class="metric-icon" aria-hidden="true">⌖</span> Network dimensions</div>
+          <div class="metric-value" id="dimensions">—</div>
+          <div class="metric-meta">Fictional locations / item types</div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article id="forecasting" class="panel forecast-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Demand intelligence</p>
+              <h2>Forecast signal</h2>
+            </div>
+            <span class="panel-tag">7-day horizon</span>
+          </div>
+          <div class="learning-tip">
+            <span class="tip-icon" aria-hidden="true">?</span>
+            <div><strong>What is a forecast?</strong><span>It is an estimate of future demand based on past observations. It is not a guarantee.</span></div>
+          </div>
+          <form id="forecast-form" class="forecast-controls">
+            <div class="field">
+              <label for="location-id">Location</label>
+              <select id="location-id" name="location_id">
+                <option value="LOC-01">LOC-01 · Hub A</option>
+                <option value="LOC-02">LOC-02 · Point B</option>
+                <option value="LOC-03">LOC-03 · Point C</option>
+                <option value="LOC-04">LOC-04 · Point D</option>
+                <option value="LOC-05">LOC-05 · Point E</option>
+                <option value="LOC-06">LOC-06 · Point F</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="item-id">Item</label>
+              <select id="item-id" name="item_id">
+                <option value="ITEM-001">ITEM-001 · Food</option>
+                <option value="ITEM-002">ITEM-002 · Water</option>
+                <option value="ITEM-003">ITEM-003 · Medical</option>
+                <option value="ITEM-004">ITEM-004 · Batteries</option>
+                <option value="ITEM-005">ITEM-005 · Repair</option>
+                <option value="ITEM-006">ITEM-006 · Shelter</option>
+                <option value="ITEM-007">ITEM-007 · Fuel simulated</option>
+                <option value="ITEM-008">ITEM-008 · Hygiene</option>
+              </select>
+            </div>
+            <button class="primary-button" type="submit">Run forecast <span aria-hidden="true">→</span></button>
+          </form>
+          <div class="forecast-summary">
+            <div>
+              <span class="muted-label">Selected model</span>
+              <strong id="forecast-model">Waiting for data</strong>
+            </div>
+            <div>
+              <span class="muted-label">Validation MAE</span>
+              <strong id="forecast-mae">—</strong>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <svg id="forecast-chart" viewBox="0 0 720 230" role="img" aria-labelledby="chart-title chart-description">
+              <title id="chart-title">Seven-day demand forecast</title>
+              <desc id="chart-description">Forecast values will appear after the dataset loads.</desc>
+              <g class="chart-grid" aria-hidden="true">
+                <line x1="48" y1="28" x2="700" y2="28"></line>
+                <line x1="48" y1="86" x2="700" y2="86"></line>
+                <line x1="48" y1="144" x2="700" y2="144"></line>
+                <line x1="48" y1="202" x2="700" y2="202"></line>
+              </g>
+              <g id="chart-labels" class="chart-labels" aria-hidden="true"></g>
+              <path id="forecast-area" class="forecast-area" d=""></path>
+              <path id="forecast-line" class="forecast-line" d=""></path>
+              <g id="forecast-points" class="forecast-points"></g>
+            </svg>
+          </div>
+          <p id="forecast-empty" class="empty-state">Generate the synthetic dataset to see a forecast signal.</p>
+        </article>
+
+        <article id="inventory" class="panel inventory-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Stock position</p>
+              <h2>Inventory health</h2>
+            </div>
+            <a class="text-link" href="/api/inventory">View API <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="learning-tip teal-tip">
+            <span class="tip-icon" aria-hidden="true">?</span>
+            <div><strong>Why does stock have uncertainty?</strong><span>Duplicate or incomplete records can make the true stock different from the recorded stock.</span></div>
+          </div>
+          <div class="inventory-highlight">
+            <div class="ring-chart" aria-hidden="true"><span id="inventory-coverage">—</span></div>
+            <div>
+              <span class="muted-label">Estimated stock coverage</span>
+              <strong id="inventory-status">Waiting for data</strong>
+              <p id="inventory-caption">Reconciled from timestamped synthetic events.</p>
+            </div>
+          </div>
+          <div class="inventory-list" id="inventory-list" aria-live="polite">
+            <div class="list-row"><span>Loading inventory estimates…</span><span>—</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid lower-grid">
+        <article id="network" class="panel network-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Fictional network</p>
+              <h2>Route readiness</h2>
+            </div>
+            <span class="panel-tag neutral">GeoJSON / NetworkX</span>
+          </div>
+          <div class="network-visual">
+            <svg class="network-svg" viewBox="0 0 560 210" role="img" aria-labelledby="network-title network-description">
+              <title id="network-title">Fictional six-location road network</title>
+              <desc id="network-description">Six locations connected by the routes 01 to 02, 01 to 03, 02 to 04, 03 to 05, 04 to 05, and 05 to 06.</desc>
+              <g class="network-grid" aria-hidden="true">
+                <path d="M20 35H540M20 105H540M20 175H540"></path>
+              </g>
+              <g class="network-edges" aria-hidden="true">
+                <line x1="66" y1="144" x2="188" y2="58"></line>
+                <line x1="66" y1="144" x2="150" y2="178"></line>
+                <line x1="188" y1="58" x2="332" y2="78"></line>
+                <line x1="150" y1="178" x2="365" y2="150"></line>
+                <line x1="332" y1="78" x2="365" y2="150"></line>
+                <line x1="365" y1="150" x2="492" y2="108"></line>
+              </g>
+              <g class="network-node node-a"><circle cx="66" cy="144" r="18"></circle><text x="66" y="144">01</text></g>
+              <g class="network-node node-b"><circle cx="188" cy="58" r="18"></circle><text x="188" y="58">02</text></g>
+              <g class="network-node node-c"><circle cx="150" cy="178" r="18"></circle><text x="150" y="178">03</text></g>
+              <g class="network-node node-d"><circle cx="332" cy="78" r="18"></circle><text x="332" y="78">04</text></g>
+              <g class="network-node node-e"><circle cx="365" cy="150" r="18"></circle><text x="365" y="150">05</text></g>
+              <g class="network-node node-f"><circle cx="492" cy="108" r="18"></circle><text x="492" y="108">06</text></g>
+              <g class="network-labels" aria-hidden="true">
+                <text x="66" y="180" text-anchor="middle">Hub A</text>
+                <text x="492" y="143" text-anchor="middle">Point F</text>
+              </g>
+            </svg>
+          </div>
+          <form id="route-form" class="route-controls">
+            <div class="field">
+              <label for="origin">From</label>
+              <select id="origin" name="origin">
+                <option value="LOC-01">LOC-01 · Hub A</option>
+                <option value="LOC-02">LOC-02 · Point B</option>
+                <option value="LOC-03">LOC-03 · Point C</option>
+                <option value="LOC-04">LOC-04 · Point D</option>
+                <option value="LOC-05">LOC-05 · Point E</option>
+                <option value="LOC-06">LOC-06 · Point F</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="destination">To</label>
+              <select id="destination" name="destination">
+                <option value="LOC-04">LOC-04 · Point D</option>
+                <option value="LOC-02">LOC-02 · Point B</option>
+                <option value="LOC-03">LOC-03 · Point C</option>
+                <option value="LOC-05">LOC-05 · Point E</option>
+                <option value="LOC-06">LOC-06 · Point F</option>
+                <option value="LOC-01">LOC-01 · Hub A</option>
+              </select>
+            </div>
+            <div class="field compact-field">
+              <label for="weather-factor">Weather factor</label>
+              <input id="weather-factor" name="weather_factor" type="number" min="1" max="10" step=".1" value="1" inputmode="decimal">
+            </div>
+            <button class="secondary-button" type="submit">Check route</button>
+          </form>
+          <p id="route-result" class="route-result" role="status" aria-live="polite">Choose two locations to check route feasibility.</p>
+          <div class="network-footer">
+            <span><i class="legend-dot connected"></i> Connected route graph</span>
+            <span><i class="legend-dot fictional"></i> Fictional coordinates</span>
+          </div>
+        </article>
+        <article class="panel readiness-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Decision support</p>
+              <h2>Run a planning scenario</h2>
+            </div>
+          </div>
+          <div class="learning-tip planning-tip">
+            <span class="tip-icon" aria-hidden="true">?</span>
+            <div><strong>What will happen?</strong><span>PSRS combines your forecast, reconciled stock, route, delivery capacity, and two synthetic conditions.</span></div>
+          </div>
+          <form id="planning-form" class="planning-form">
+            <div class="field">
+              <label for="capacity-limit">Shared vehicle capacity</label>
+              <input id="capacity-limit" name="capacity_limit" type="number" min="1" max="10000" value="100" inputmode="numeric">
+            </div>
+            <button class="primary-button" type="submit">Run scenario <span aria-hidden="true">→</span></button>
+          </form>
+          <div id="planning-result" class="planning-result" role="status" aria-live="polite">
+            <span class="result-placeholder">Your scenario result will appear here.</span>
+          </div>
+          <a class="text-link result-api-link" href="/api/planning">Open planning API <span aria-hidden="true">↗</span></a>
+        </article>
+      </section>
+
+      <section class="learning-section" aria-labelledby="learning-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Project guide</p>
+            <h2 id="learning-title">The PSRS decision loop</h2>
+          </div>
+          <span class="muted-label">A beginner-friendly map of the system</span>
+        </div>
+        <div class="loop-grid">
+          <article class="loop-card">
+            <div class="loop-number blue">01</div>
+            <div><h3>Observe</h3><p>Start with synthetic demand and inventory events. These are the records the system can see.</p><span class="loop-code">demand_history.csv</span></div>
+          </article>
+          <article class="loop-card">
+            <div class="loop-number teal">02</div>
+            <div><h3>Reconcile</h3><p>Check whether events agree and estimate stock without hiding duplicate or invalid records.</p><span class="loop-code">inventory_reconciliation</span></div>
+          </article>
+          <article class="loop-card">
+            <div class="loop-number purple">03</div>
+            <div><h3>Predict</h3><p>Compare a simple baseline with a machine-learning forecast and inspect the error.</p><span class="loop-code">demand_forecasting</span></div>
+          </article>
+          <article class="loop-card">
+            <div class="loop-number amber">04</div>
+            <div><h3>Plan safely</h3><p>Test routes, delays, weather assumptions, and vehicle capacity before accepting a plan.</p><span class="loop-code">simulation + constraints</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="glossary-section" aria-labelledby="glossary-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Quick glossary</p>
+            <h2 id="glossary-title">Words you will see in PSRS</h2>
+          </div>
+        </div>
+        <div class="glossary-grid">
+          <details><summary>MAE <span aria-hidden="true">+</span></summary><p>Mean Absolute Error: the average size of forecast mistakes. Lower is generally better.</p></details>
+          <details><summary>Reconciliation <span aria-hidden="true">+</span></summary><p>Rebuilding an estimated stock position from opening balances, receipts, and issues.</p></details>
+          <details><summary>Feasible route <span aria-hidden="true">+</span></summary><p>A route that exists in the fictional road graph. PSRS flags destinations it cannot reach.</p></details>
+          <details><summary>Ground truth <span aria-hidden="true">+</span></summary><p>Hidden future values used only after a forecast is produced to measure performance fairly.</p></details>
+        </div>
+      </section>
+
+      <footer class="page-footer">
+        <span>PSRS research prototype</span>
+        <span>All values are synthetic and fictional · Human review required</span>
+      </footer>
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
