@@ -46,6 +46,11 @@
     </div>
     <div id="map" aria-label="Map of fictional logistics locations"></div><p id="route-result" role="status" class="muted">Route not calculated yet.</p>
   </section>
+  <section><h2>Integrated planning scenario</h2>
+    <p class="muted">Runs the local forecast, reconciled stock estimate, route feasibility, transport-capacity check, and nominal/adverse synthetic simulations. Review all assumptions before interpreting recommendations.</p>
+    <button id="planning-button" type="button">Run integrated planning</button>
+    <pre id="planning-result" class="card" aria-live="polite" style="white-space:pre-wrap;overflow-wrap:anywhere">Planning has not been run.</pre>
+  </section>
   <p><a href="/health">Application health</a> · <a href="/api/inventory">Inventory API</a> · <a href="/api/route">Route API</a></p>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -88,6 +93,16 @@
   }
   $("#forecast-button").addEventListener("click",function(){runForecast().catch(function(e){$("#notice").textContent=e.message})});
   $("#route-button").addEventListener("click",function(){runRoute().catch(function(e){$("#route-result").textContent=e.message})});
+  $("#planning-button").addEventListener("click",async function(){
+    try{
+      $("#planning-result").textContent="Calculating scenarios…";
+      var p=new URLSearchParams({location_id:$("#location").value,item_id:$("#item").value,
+        horizon:$("#horizon").value,origin:$("#origin").value,destination:$("#destination").value,capacity_limit:"100"});
+      var response=await fetch("/api/planning?"+p),result=await response.json();
+      if(!response.ok)throw new Error(result.error||"Planning unavailable");
+      $("#planning-result").textContent=JSON.stringify(result,null,2);
+    }catch(e){$("#planning-result").textContent=e.message}
+  });
   initMap();loadSummary().then(runForecast).catch(function(e){$("#notice").textContent=e.message});
   runRoute().catch(function(e){$("#route-result").textContent=e.message});
 })();
